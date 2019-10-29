@@ -1,0 +1,72 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
+    <TargetFrameworkSDKToolsDirectory>C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools</TargetFrameworkSDKToolsDirectory>
+    <StartupObject></StartupObject>
+    <ApplicationIcon />
+    <OutputType>Exe</OutputType>
+    <Win32Resource />
+    <LangVersion>default</LangVersion>
+  </PropertyGroup>
+
+  <Target Name="WorkaroundMSBuild2836" BeforeTargets="CompileLicxFiles">
+    <!-- Work around https://github.com/Microsoft/msbuild/issues/2836 by
+         temporarily setting TargetFrameworkVersion to a version high
+         high enough to cause the LC task to use a response file. -->
+    <PropertyGroup>
+      <_OriginalTargetFrameworkVersion>$(TargetFrameworkVersion)</_OriginalTargetFrameworkVersion>
+      <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    </PropertyGroup>
+  </Target>
+  <Target Name="UndoWorkaroundMSBuild2836" AfterTargets="CompileLicxFiles">
+    <PropertyGroup>
+      <TargetFrameworkVersion>$(_OriginalTargetFrameworkVersion)</TargetFrameworkVersion>
+    </PropertyGroup>
+  </Target>
+
+  <ItemGroup>
+    <None Remove="cfxtestapi.dll.licenses" />
+    <None Remove="licenses.licx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.0.30" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.7.6" />
+    <PackageReference Include="Hangfire.Core" Version="1.7.6" />
+    <PackageReference Include="Hangfire.SqlServer" Version="1.7.6" />
+    <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.Razor.Design" Version="2.2.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.0.0" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="1.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="CData.EntityFrameworkCore.QuickBooksOnline">
+      <HintPath>..\..\..\..\..\..\..\Program Files\CData\CData ADO.NET Provider for QuickBooks Online 2019\lib\netstandard2.0\EFCORE21\CData.EntityFrameworkCore.QuickBooksOnline.dll</HintPath>
+    </Reference>
+    <Reference Include="LoggerService">
+      <HintPath>..\LoggerService\bin\Debug\netcoreapp2.0\LoggerService.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data.CData.QuickBooksOnline">
+      <HintPath>..\..\..\..\..\..\..\Program Files\CData\CData ADO.NET Provider for QuickBooks Online 2019\lib\netstandard2.0\System.Data.CData.QuickBooksOnline.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>
