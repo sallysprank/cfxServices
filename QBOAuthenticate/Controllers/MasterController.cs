@@ -37,7 +37,7 @@ namespace QBOAuthenticate.Controllers
             _logger = logger;
         }
 
-        // GET: api/master/id
+        // GET: api/master/beginauthorize/id
         [HttpGet("{id}", Order = 1)]
         public ActionResult<bool> BeginAuthorize(int id)
         {
@@ -152,23 +152,23 @@ namespace QBOAuthenticate.Controllers
         }
     }
 
-    static class Validate
-    {
-        public static string SafeGetString(this QuickBooksOnlineDataReader reader, int colIndex)
-        {
-            try
-            {
-                if (!reader.IsDBNull(colIndex))
-                    return reader.GetString(colIndex);
-                return string.Empty;
-            }
-            catch (Exception ex)
-            {
-                string txnError = ex.Message.ToString();
-                return string.Empty;
-            }
+    //static class Validate
+    //{
+    //    public static string SafeGetString(this QuickBooksOnlineDataReader reader, int colIndex)
+    //    {
+    //        try
+    //        {
+    //            if (!reader.IsDBNull(colIndex))
+    //                return reader.GetString(colIndex);
+    //            return string.Empty;
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            string txnError = ex.Message.ToString();
+    //            return string.Empty;
+    //        }
 
-        }
-    }
+    //    }
+    //}
 
 }

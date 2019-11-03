@@ -12,6 +12,7 @@ using System.Text;
 using System.IO;
 using System.Data;
 using LoggerService;
+using System.Collections;
 
 namespace QBODataCollect.Controllers
 {
@@ -22,6 +23,7 @@ namespace QBODataCollect.Controllers
         private readonly ICustomerRepository _customerRepo;
         private readonly IQBOAccessRepository _qboaccessRepo;
         private readonly IInvoiceRepository _invoiceRepo;
+        private readonly ISubscriberRepository _subscriberRepo;
         private ILoggerManager _logger;
         private int subscriberId;
         private string appOauthAccessToken = "";
@@ -29,11 +31,12 @@ namespace QBODataCollect.Controllers
         private List<Customer> customerList = new List<Customer>();
         private List<Invoice> invoiceList = new List<Invoice>();
 
-        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ILoggerManager logger)
+        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ISubscriberRepository subscriberRepo, ILoggerManager logger)
         {
             _customerRepo = customerRepo;
             _qboaccessRepo = qboaccessRepo;
             _invoiceRepo = invoiceRepo;
+            _subscriberRepo = subscriberRepo;
             _logger = logger;
         }
 
@@ -41,33 +44,53 @@ namespace QBODataCollect.Controllers
         [HttpGet("{id}")]
         public ActionResult<bool> Client(int id)
         {
+            //If the id is 0, return all subscribers otherwise return the requested subscriber
             bool bRtn;
             subscriberId = id;
+            IEnumerable<Subscriber> subscriber;
 
-            QBOAccess qboAccess = _qboaccessRepo.GetById(subscriberId);
-            // save Access Id
-            int qboAccessId = qboAccess.Id;
-            //throw new Exception("Exception while fetching QBO access record.");
-
-            // Refresh QBO connection
-            bRtn = RefreshQBO(qboAccess);
-            if (bRtn == false) return false;
-
-            // Update Access table with new refresh token
-            try
+            if (subscriberId == 0)
             {
-                bRtn = _qboaccessRepo.UpdateQBOAccess(qboAccessId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
-                if (bRtn == false) return false;
-            }   
-            catch
+                subscriber = _subscriberRepo.GetAllSubscribers();
+            }
+            else
             {
-                // Need to add error processing
-                return false;
+                subscriber = _subscriberRepo.GetById(subscriberId);
+                if (subscriber == null)
+                {
+                    return false;
+                }
             }
 
-            //Time to get some data from QBO
-            // Get and Update Customers & Invoices
-            bRtn = GetQBOCustomers(qboAccess);
+            foreach (Subscriber subs in subscriber)
+            {
+                return true;
+            }
+
+            //QBOAccess qboAccess = _qboaccessRepo.GetById(subscriberId);
+            //// save Access Id
+            //int qboAccessId = qboAccess.Id;
+            ////throw new Exception("Exception while fetching QBO access record.");
+
+            //// Refresh QBO connection
+            //bRtn = RefreshQBO(qboAccess);
+            //if (bRtn == false) return false;
+
+            //// Update Access table with new refresh token
+            //try
+            //{
+            //    bRtn = _qboaccessRepo.UpdateQBOAccess(qboAccessId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
+            //    if (bRtn == false) return false;
+            //}   
+            //catch
+            //{
+            //    // Need to add error processing
+            //    return false;
+            //}
+
+            ////Time to get some data from QBO
+            //// Get and Update Customers & Invoices
+            //bRtn = GetQBOCustomers(qboAccess);
             return true;
         }
 

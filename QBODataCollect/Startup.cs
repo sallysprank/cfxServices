@@ -32,6 +32,7 @@ namespace QBODataCollect
             services.AddTransient<ICustomerRepository, CustomerRepository>();
             services.AddTransient<IQBOAccessRepository, QBOAccessRepository>();
             services.AddTransient<IInvoiceRepository, InvoiceRepository>();
+            services.AddTransient<ISubscriberRepository, SubscriberRepository>();
             services.AddSingleton<ILoggerManager, LoggerManager>();
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
             services.AddHangfire(configuration => configuration
