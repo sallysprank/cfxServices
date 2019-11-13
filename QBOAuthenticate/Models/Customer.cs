@@ -48,5 +48,22 @@ namespace QBOAuthenticate.Models
         public string Notes { get; set; }
 
         public int SubscriberId { get; set; }
+
+        [StringLength(100)]
+        public string AltGivenName { get; set; }
+
+        [StringLength(100)]
+        public string AltFamilyName { get; set; }
+
+        [StringLength(30)]
+        [DataType(DataType.PhoneNumber)]
+        public string AltPrimaryPhone { get; set; }
+
+        [StringLength(100)]
+        [DataType(DataType.EmailAddress)]
+        public string AltPrimaryEmailAddress { get; set; }
+
+        public bool SendAutoReminder { get; set; }
+
     }
 }

@@ -8,10 +8,10 @@ namespace QBODataCollect.Repositories.Interfaces
 {
     public interface ICustomerRepository
     {
-        Customer GetByID(int subid,int id);
+        Customer GetByID(int subid,string id);
         IEnumerable<Customer> GetAllCustomers();
-        bool AddCustomer(Customer ourCustomer);
-        bool UpdateCustomer(int id, Customer ourCustomer);
+        int AddCustomer(Customer ourCustomer);
+        bool UpdateCustomer(Customer ourCustomer);
         bool DeleteCustomer(int id);
     }
 }

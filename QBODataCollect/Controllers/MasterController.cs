@@ -64,37 +64,34 @@ namespace QBODataCollect.Controllers
 
             foreach (Subscriber subs in subscriber)
             {
+                QBOAccess qboAccess = _qboaccessRepo.GetById(subscriberId);
+                // save Access Id
+                int qboAccessId = qboAccess.Id;
+                //throw new Exception("Exception while fetching QBO access record.");
+
+                // Refresh QBO connection
+                bRtn = RefreshQBO(qboAccess);
+                if (bRtn == false) return false;
+
+                // Update Access table with new refresh token
+                try
+                {
+                    bRtn = _qboaccessRepo.UpdateQBOAccess(qboAccessId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
+                    if (bRtn == false) return false;
+                }
+                catch
+                {
+                    // Need to add error processing
+                    return false;
+                }
+
+                //Time to get some data from QBO
+                // Get and Update Customers & Invoices
+                bRtn = GetQBOCustomers(qboAccess);
                 return true;
             }
-
-            //QBOAccess qboAccess = _qboaccessRepo.GetById(subscriberId);
-            //// save Access Id
-            //int qboAccessId = qboAccess.Id;
-            ////throw new Exception("Exception while fetching QBO access record.");
-
-            //// Refresh QBO connection
-            //bRtn = RefreshQBO(qboAccess);
-            //if (bRtn == false) return false;
-
-            //// Update Access table with new refresh token
-            //try
-            //{
-            //    bRtn = _qboaccessRepo.UpdateQBOAccess(qboAccessId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
-            //    if (bRtn == false) return false;
-            //}   
-            //catch
-            //{
-            //    // Need to add error processing
-            //    return false;
-            //}
-
-            ////Time to get some data from QBO
-            //// Get and Update Customers & Invoices
-            //bRtn = GetQBOCustomers(qboAccess);
             return true;
         }
-
-        
         
         //Refresh QBO
         private bool RefreshQBO(QBOAccess qboAccess)
@@ -155,7 +152,6 @@ namespace QBODataCollect.Controllers
             connString.CompanyId = qboAccess.Company;
             connString.OAuthVersion = "2.0";
             connString.UseSandbox = true;
-            //connString.InitiateOAuth = "GETANDREFRESH";
 
             try
             {
@@ -166,6 +162,7 @@ namespace QBODataCollect.Controllers
                         using (QuickBooksOnlineDataReader reader = cmdQBO.ExecuteReader())
                         {
                             int colIndex = 0;
+                            string QBCId;
                             string GName;
                             string FName;
                             string Suf;
@@ -178,13 +175,14 @@ namespace QBODataCollect.Controllers
 
                             while (reader.Read())
                             {
-                                if (Int32.TryParse((string)reader["Id"], out int CId))
-                                {
-                                }
-                                else
-                                {
-                                    continue;
-                                }
+                                //if (Int32.TryParse((string)reader["Id"], out int CId))
+                                //{
+                                //}
+                                //else
+                                //{
+                                //    continue;
+                                //}
+                                QBCId = reader.GetString("Id");
                                 colIndex = reader.GetOrdinal("GivenName");
                                 GName = Validate.SafeGetString(reader, colIndex);
                                 colIndex = reader.GetOrdinal("FamilyName");
@@ -205,7 +203,8 @@ namespace QBODataCollect.Controllers
                                 Nte = Validate.SafeGetString(reader, colIndex);
                                 customerList.Add(new Customer
                                 {
-                                    CustomerId = CId,
+                                    CustomerId = 0,
+                                    QBCustomerId = QBCId,
                                     GivenName = GName,
                                     FamilyName = FName,
                                     Suffix = Suf,
@@ -217,7 +216,8 @@ namespace QBODataCollect.Controllers
                                     PrimaryEmailAddress = PEmail,
                                     Balance = Convert.ToDecimal(reader["Balance"]),
                                     Notes = Nte,
-                                    SubscriberId = subscriberId
+                                    SubscriberId = subscriberId,
+                                    SendAutoReminder = true
                                 });
                             }
                         }
@@ -231,23 +231,24 @@ namespace QBODataCollect.Controllers
             }
             foreach (var cust in customerList)
             {
-                Customer customer = _customerRepo.GetByID(subscriberId, cust.CustomerId);
+                Customer customer = _customerRepo.GetByID(subscriberId, cust.QBCustomerId);
                 if (customer == null)
                 {
                     // customer not found, add it
-                    var result = _customerRepo.AddCustomer(cust);
-                    if (result == false) return false;
+                    var customerId = _customerRepo.AddCustomer(cust);
+                    if (customerId == 0) return false;
                     // Get any invoices this customer may have
-                    result = GetInvoices(cust, connString);
+                    var result = GetInvoices(cust, customerId, connString);
                     if (result == false) return false;
                 }
                 else
                 {
                     // we found a customer update it
-                    var result = _customerRepo.UpdateCustomer(cust.CustomerId, cust);
+                    cust.CustomerId = customer.CustomerId;
+                    var result = _customerRepo.UpdateCustomer(cust);
                     if (result == false) return false;
                     // Get any invoices this customer may have
-                    result = GetInvoices(cust, connString);
+                    result = GetInvoices(cust, customer.CustomerId, connString);
                     if (result == false) return false;
                 }
             }
@@ -255,7 +256,7 @@ namespace QBODataCollect.Controllers
         }
 
         //Get Customer Invoices
-        private bool GetInvoices(Customer customer, QuickBooksOnlineConnectionStringBuilder connString)
+        private bool GetInvoices(Customer customer, int customerId, QuickBooksOnlineConnectionStringBuilder connString)
         {
             // Need to clear the list
             invoiceList = new List<Invoice>();
@@ -263,12 +264,13 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connInv = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    using (QuickBooksOnlineCommand cmdInv = new QuickBooksOnlineCommand("Select * FROM Invoices WHERE CustomerRef = " + customer.CustomerId, connInv))
+                    using (QuickBooksOnlineCommand cmdInv = new QuickBooksOnlineCommand("Select * FROM Invoices WHERE CustomerRef = " + customer.QBCustomerId, connInv))
                     {
                         using (QuickBooksOnlineDataReader reader = cmdInv.ExecuteReader())
                         {
-                            bool addInvoice = true;
-                            string CustIId;
+                            bool addInvoice = false;
+                            int CustId;
+                            string QBIId;
                             int colIndex = 0;
                             string IDNbr;
                             DateTime IDate;
@@ -278,19 +280,18 @@ namespace QBODataCollect.Controllers
                             string ITxns;
                             DateTime ILastPymtDate = DateTime.MaxValue;
                             DateTime ILastReminder = DateTime.MaxValue;
-
                             while (reader.Read())
                             {
 
-                                if (Int32.TryParse((string)reader["Id"], out int IId))
-                                {
-                                }
-                                else
-                                {
-                                    continue;
-                                }
-                                colIndex = reader.GetOrdinal("CustomerRef");
-                                CustIId = Validate.SafeGetString(reader, colIndex);
+                                //if (Int32.TryParse((string)reader["Id"], out int IId))
+                                //{
+                                //}
+                                //else
+                                //{
+                                //    continue;
+                                //}
+                                QBIId = reader.GetString("Id");
+                                CustId = customerId;
                                 colIndex = reader.GetOrdinal("DocNumber");
                                 IDNbr = reader.GetString(colIndex);
                                 IDate = reader.GetDateTime("TxnDate");
@@ -300,44 +301,58 @@ namespace QBODataCollect.Controllers
                                 colIndex = reader.GetOrdinal("LinkedTxnAggregate");
                                 ITxns = Validate.SafeGetString(reader, colIndex);
                                 //Filter Invoices to keep
-                                addInvoice = true;
-                                if (IBalance == 0)
+                                addInvoice = false;
+                                if (IBalance > 0)
                                 {
+                                    // we always want to add the invoice if the balance > 0
+                                    addInvoice = true;
                                     // Get the last payment date
                                     XmlDocument xDoc = new XmlDocument();
                                     // Convert string to stream
                                     byte[] byteArray = Encoding.ASCII.GetBytes(ITxns);
                                     MemoryStream stream = new MemoryStream(byteArray);
-                                    xDoc.Load(stream);
-                                    XmlNodeList xnList = xDoc.SelectNodes("/LinkedTxnAggregate/Row");
-                                    foreach (XmlNode xn in xnList)
+                                    if (stream.Length > 0)
                                     {
-                                        string txnId = xn["TxnId"].InnerXml;
-                                        string txnType = xn["TxnType"].InnerXml;
-                                        if (txnType == "Payment")
+                                        xDoc.Load(stream);
+                                        XmlNodeList xnList = xDoc.SelectNodes("/LinkedTxnAggregate/Row");
+                                        // If we have transaction information, process it
+                                        if (xnList.Count > 0)
                                         {
-                                            DateTime txnDate = GetPymtDate(txnId, connString);
-                                            DateTime now = DateTime.UtcNow;
-                                            int monthDiff = GetMonthDifference(now, txnDate);
-                                            if (monthDiff < 6)
+                                            foreach (XmlNode xn in xnList)
                                             {
-                                                ILastPymtDate = txnDate;
+                                                string txnId = xn["TxnId"].InnerXml;
+                                                string txnType = xn["TxnType"].InnerXml;
+                                                if (txnType == "Payment")
+                                                {
+                                                    DateTime txnDate = GetPymtDate(txnId, connString);
+                                                    //for test data
+                                                    DateTime now = new DateTime(2014, 12, 31);
+                                                    int monthDiff = GetMonthDifference(now, txnDate);
+                                                    if (monthDiff < 6)
+                                                    {
+                                                        ILastPymtDate = txnDate;
+                                                        addInvoice = true;
+                                                        break;
+                                                    }
+                                                    else
+                                                    {
+                                                        addInvoice = false;
+                                                        break;
+                                                    }
+                                                }
                                             }
-                                            else
-                                            {
-                                                addInvoice = false;
-                                                break;
-                                            }
+
                                         }
                                     }
                                 }
                                 // Don't add the invoice
-                                if (addInvoice == false) break;
+                                if (addInvoice == false) continue;
 
                                 invoiceList.Add(new Invoice
                                 {
-                                    InvoiceId = IId,
-                                    CustomerId = Convert.ToInt32(CustIId),
+                                    InvoiceId = 0,
+                                    QBInvoiceId = QBIId,
+                                    CustomerId = CustId,
                                     InvDocNbr = IDNbr,
                                     InvDate = IDate,
                                     InvDueDate = IDueDate,
@@ -345,7 +360,8 @@ namespace QBODataCollect.Controllers
                                     InvBalance = IBalance,
                                     InvTxns = ITxns,
                                     InvLastPymtDate = ILastPymtDate,
-                                    InvLastReminder = ILastReminder
+                                    InvLastReminder = ILastReminder,
+                                    SendAutoReminder = true
                                 });
                             }
                         }
@@ -361,7 +377,7 @@ namespace QBODataCollect.Controllers
 
             foreach (var inv in invoiceList)
             {
-                Invoice invoice = _invoiceRepo.GetByID(inv.InvoiceId);
+                Invoice invoice = _invoiceRepo.GetByID(inv.CustomerId, inv.QBInvoiceId);
                 if (invoice == null)
                 {
                     // Need to add a invoice record
@@ -371,7 +387,8 @@ namespace QBODataCollect.Controllers
                 else
                 {
                     // Need to update invoice
-                    var result = _invoiceRepo.UpdateInvoice(inv.InvoiceId, inv);
+                    inv.InvoiceId = invoice.InvoiceId;
+                    var result = _invoiceRepo.UpdateInvoice(inv);
                     if (result == false) return false;
                 }
             }
@@ -382,7 +399,9 @@ namespace QBODataCollect.Controllers
 
         private DateTime GetPymtDate(string txnId, QuickBooksOnlineConnectionStringBuilder connString)
         {
-            DateTime toDay = DateTime.Now;
+            //For test data
+            DateTime toDay = new DateTime(2014, 12, 31);
+            //DateTime toDay = DateTime.Now;
             try
             {
                 using (QuickBooksOnlineConnection connPymt = new QuickBooksOnlineConnection(connString.ToString()))

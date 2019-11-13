@@ -28,12 +28,12 @@ namespace QBODataCollect.Repositories
             }
         }
 
-        public Invoice GetByID(int invoiceId)
+        public Invoice GetByID(int cId, string qbIId)
         {
             using (IDbConnection conn = Connection)
             {
-                var @params = new { InvoiceId = invoiceId };
-                string sQuery = "SELECT invoiceId FROM Invoice WHERE InvoiceId = @InvoiceId";
+                var @params = new { CustomerId = cId, QBInvoiceId = qbIId };
+                string sQuery = "SELECT invoiceId FROM Invoice WHERE CustomerId = @CustomerId AND QBInvoiceId = @QBInvoiceId";
                 conn.Open();
                 var result = conn.Query<Invoice>(sQuery, @params);
                 return result.FirstOrDefault();
@@ -60,13 +60,13 @@ namespace QBODataCollect.Repositories
             {
                 using (IDbConnection conn = Connection)
                 {
-                    string sQuery = "INSERT " +
-                        "Invoice ([InvoiceId],[CustomerId],[InvDocNbr],[InvDate],[InvDueDate],[InvTotalAmt],[InvBalance],[InvTxns],[InvLastPymtDate],[InvLastReminder]) " +
-                        "VALUES (@InvoiceId,@CustomerId,@InvDocNbr,@InvDate,@InvDueDate,@InvTotalAmt,@InvBalance,@InvTxns,@InvLastPymtDate,@InvLastReminder)";
+                    string sQuery = "INSERT INTO " +
+                        "Invoice ([QBInvoiceId],[CustomerId],[InvDocNbr],[InvDate],[InvDueDate],[InvTotalAmt],[InvBalance],[InvTxns],[InvLastPymtDate],[InvLastReminder],[Notes],[SendAutoReminder]) " +
+                        "VALUES (@QBInvoiceId,@CustomerId,@InvDocNbr,@InvDate,@InvDueDate,@InvTotalAmt,@InvBalance,@InvTxns,@InvLastPymtDate,@InvLastReminder,@Notes,@SendAutoReminder)";
                     conn.Open();
                     var result = conn.Execute(@sQuery, new
                     {
-                        InvoiceId = ourInvoice.InvoiceId,
+                        QBInvoiceId = ourInvoice.QBInvoiceId,
                         CustomerId = ourInvoice.CustomerId,
                         InvDocNbr = ourInvoice.InvDocNbr,
                         InvDate = ourInvoice.InvDate,
@@ -75,7 +75,9 @@ namespace QBODataCollect.Repositories
                         InvBalance = ourInvoice.InvBalance,
                         InvTxns = ourInvoice.InvTxns,
                         InvLastPymtDate = ourInvoice.InvLastPymtDate,
-                        InvLastReminder = ourInvoice.InvLastReminder
+                        InvLastReminder = ourInvoice.InvLastReminder,
+                        Notes = ourInvoice.Notes,
+                        SendAutoReminder = true
                     });
                     if (result > 0)
                     {
@@ -92,19 +94,15 @@ namespace QBODataCollect.Repositories
             
         }
 
-        public bool UpdateInvoice(int id, Invoice ourInvoice)
+        public bool UpdateInvoice(Invoice ourInvoice)
         {
-            if (id != ourInvoice.InvoiceId)
-            {
-                return false;
-            }
             try
             {
                 using (IDbConnection conn = Connection)
                 {
-                    string sQuery = @"UPDATE Invoice SET [CustomerId] = @CustomerId,[InvDocNbr] = @InvDocNbr,[InvDate] = @InvDate," +
+                    string sQuery = @"UPDATE Invoice SET [InvDocNbr] = @InvDocNbr,[InvDate] = @InvDate," +
                             "[InvDueDate] = @InvDueDate,[InvTotalAmt] = @InvTotalAmt,[InvBalance] = @InvBalance," +
-                            "[InvTxns] = @InvTxns,[InvLastPymtDate] = @InvLastPymtDate,[InvLastReminder] = @InvLastReminder " +
+                            "[InvTxns] = @InvTxns,[InvLastPymtDate] = @InvLastPymtDate " +
                             "WHERE [InvoiceId] = @InvoiceId";
                     conn.Open();
                     var results = conn.Execute(@sQuery, ourInvoice);

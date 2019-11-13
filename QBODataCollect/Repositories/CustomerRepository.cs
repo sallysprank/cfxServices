@@ -28,12 +28,12 @@ namespace QBODataCollect.Repositories
             }
         }
 
-        public Customer GetByID(int subscriberId,int customerId)
+        public Customer GetByID(int subscriberId,string qbcustomerId)
         {
             using (IDbConnection conn = Connection)
             {
-                var parameters = new { SubscriberId = subscriberId, CustomerId = customerId };
-                string sQuery = "SELECT CustomerId FROM Customer WHERE SubscriberId = @SubscriberId AND CustomerId = @CustomerId";
+                var parameters = new { SubscriberId = subscriberId, QBCustomerId = qbcustomerId };
+                string sQuery = "SELECT CustomerId FROM Customer WHERE SubscriberId = @SubscriberId AND QBCustomerId = @QBCustomerId";
                 conn.Open();
                 var result = conn.Query<Customer>(sQuery, parameters);
                 return result.FirstOrDefault();
@@ -54,37 +54,50 @@ namespace QBODataCollect.Repositories
 
         }
 
-        public bool AddCustomer(Customer ourCustomer)
+        public int AddCustomer(Customer ourCustomer)
         {
             using (IDbConnection conn = Connection)
             {
-                string sQuery = "INSERT " +
-                    "Customer ([CustomerId],[Title],[GivenName],[FamilyName],[Suffix],[DisplayName],[CompanyName],[Active],[PrimaryPhone],[MobilePhone],[PrimaryEmailAddress],[Balance],[Notes],[SubscriberId]) " +
-                    "VALUES (@CustomerId,@Title,@GivenName,@FamilyName,@Suffix,@DisplayName,@CompanyName,@Active,@PrimaryPhone,@MobilePhone,@PrimaryEmailAddress,@Balance,@Notes,@SubscriberId)";
+                string sQuery = "INSERT INTO " +
+                    "Customer ([QBCustomerId],[Title],[GivenName],[FamilyName],[Suffix],[DisplayName],[CompanyName],[Active],[PrimaryPhone],[MobilePhone],[PrimaryEmailAddress],[Balance],[Notes],[SubscriberId],[SendAutoReminder]) " +
+                    "OUTPUT INSERTED.CustomerId " +
+                    "VALUES (@QBCustomerId,@Title,@GivenName,@FamilyName,@Suffix,@DisplayName,@CompanyName,@Active,@PrimaryPhone,@MobilePhone,@PrimaryEmailAddress,@Balance,@Notes,@SubscriberId,@SendAutoReminder)";
                 conn.Open();
-                var result = conn.Execute(@sQuery,new { CustomerId = ourCustomer.CustomerId, Title = ourCustomer.Title, GivenName = ourCustomer.GivenName, FamilyName = ourCustomer.FamilyName, Suffix = ourCustomer.Suffix, 
-                    DisplayName = ourCustomer.DisplayName, CompanyName = ourCustomer.CompanyName, Active = ourCustomer.Active, PrimaryPhone = ourCustomer.PrimaryPhone, MobilePhone = ourCustomer.MobilePhone,
-                    PrimaryEmailAddress = ourCustomer.PrimaryEmailAddress, Balance = ourCustomer.Balance, Notes = ourCustomer.Notes, ourCustomer.SubscriberId });
-                if (result > 0)
+                int result = (int)conn.ExecuteScalar(@sQuery,new
                 {
-                    return true;
-                }
-                return false;
+                    QBCustomerId = ourCustomer.QBCustomerId,
+                    Title = ourCustomer.Title,
+                    GivenName = ourCustomer.GivenName,
+                    FamilyName = ourCustomer.FamilyName,
+                    Suffix = ourCustomer.Suffix,
+                    DisplayName = ourCustomer.DisplayName,
+                    CompanyName = ourCustomer.CompanyName,
+                    Active = ourCustomer.Active,
+                    PrimaryPhone = ourCustomer.PrimaryPhone,
+                    MobilePhone = ourCustomer.MobilePhone,
+                    PrimaryEmailAddress = ourCustomer.PrimaryEmailAddress,
+                    Balance = ourCustomer.Balance,
+                    Notes = ourCustomer.Notes,
+                    SubscriberId = ourCustomer.SubscriberId,
+                    SendAutoReminder = ourCustomer.SendAutoReminder
+                });
+                return result;
+                //if (result > 0)
+                //{
+                //    return true;
+                //}
+                //return false;
             }
         }
 
-        public bool UpdateCustomer(int id, Customer ourCustomer)
+        public bool UpdateCustomer(Customer ourCustomer)
         {
-            if (id != ourCustomer.CustomerId)
-            {
-                return false;
-            }
             using (IDbConnection conn = Connection)
             {
                 string sQuery = @"UPDATE Customer SET [Title] = @Title,[GivenName] = @GivenName,[FamilyName] = @FamilyName," +
                     "[Suffix] = @Suffix,[DisplayName] = @DisplayName,[CompanyName] = @CompanyName," +
                     "[Active] = @Active,[PrimaryPhone] = @PrimaryPhone,[MobilePhone] = @MobilePhone," +
-                    "[PrimaryEmailAddress] = @PrimaryEmailAddress,[Balance] = @Balance,[Notes] = @Notes,[SubscriberId] = @SubscriberId " +
+                    "[PrimaryEmailAddress] = @PrimaryEmailAddress,[Balance] = @Balance " +
                     "WHERE [CustomerId] = @CustomerId";
                 conn.Open();
                 var results = conn.Execute(@sQuery, ourCustomer);

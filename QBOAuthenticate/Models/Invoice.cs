@@ -18,5 +18,6 @@ namespace QBOAuthenticate.Models
         public DateTime InvLastPymtDate { get; set; }
         public DateTime InvLastReminder { get; set; }
         public string Notes { get; set; }
+        public bool SendAutoReminder { get; set; }
     }
 }

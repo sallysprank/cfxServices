@@ -8,6 +8,7 @@ namespace QBODataCollect.Models
     public class Invoice
     {
         public int InvoiceId { get; set; }
+        public string QBInvoiceId { get; set; }
         public int CustomerId { get; set; }
         public string InvDocNbr { get; set; }
         public DateTime InvDate { get; set; }
@@ -18,5 +19,6 @@ namespace QBODataCollect.Models
         public DateTime InvLastPymtDate { get; set; }
         public DateTime InvLastReminder { get; set; }
         public string Notes { get; set; }
+        public bool SendAutoReminder { get; set; }
     }
 }
