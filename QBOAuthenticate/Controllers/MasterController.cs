@@ -41,6 +41,7 @@ namespace QBOAuthenticate.Controllers
         [HttpGet("{id}", Order = 1)]
         public ActionResult<bool> BeginAuthorize(int id)
         {
+            _logger.LogInfo("Start BeginAuthorize for Subscriber " + id);
             HttpContext.Session.SetInt32("subscriberId", id); // set the session subscriber id
             var connString = new QuickBooksOnlineConnectionStringBuilder();
             connString.Offline = false;
@@ -68,18 +69,19 @@ namespace QBOAuthenticate.Controllers
                             }
                             else
                             {
-                                // will need some error processing
+                                _logger.LogError("Subscriber " + id + "-No Authorization URL available");
+                                return false;
                             }
                         }
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                //Response.Clear();
-                //await Response.WriteAsync(ex.Message + ex.InnerException);
+                _logger.LogError("Subscriber " + id + " " + ex.Message);
                 return false;
             }
+            _logger.LogInfo("End BeginAuthorize for Subscriber " + id);
             return true;
         }
 
@@ -88,12 +90,14 @@ namespace QBOAuthenticate.Controllers
         public ActionResult<bool> FinalAuthorize()
         {
             string verifierToken = "";
+            int sid = (int)HttpContext.Session.GetInt32("subscriberId");
             // will delete this
             //var qboQueryString = Request.Query;
             //foreach (var qbItem in qboQueryString.Keys)
             //{
             //    System.Diagnostics.Debug.WriteLine("Key: " + qbItem + ", Value: " + Request.Query[qbItem]);
             //}
+            _logger.LogInfo("Start FinalAuthorize for Subscriber " + sid);
             string qboCode = Request.Query["code"];
             if (qboCode == null)
                 return false;
@@ -128,7 +132,8 @@ namespace QBOAuthenticate.Controllers
                             }
                             else
                             {
-                                // will need some error processing
+                                _logger.LogError("Subscriber " + sid + "-No OAuthRefreshToken available");
+                                return false;
 
                             }
                         }
@@ -137,17 +142,19 @@ namespace QBOAuthenticate.Controllers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("Message: " + ex.Message);
+                _logger.LogError("Subscriber " + sid + " " + ex.Message);
                 return false;
             }
             //Add our QBOAccess record
-            int sid = (int)HttpContext.Session.GetInt32("subscriberId");
             bool exists = _qboaccessRepo.CheckExists(sid);
             if (exists == false)
                 return false;
             bool bRtn = _qboaccessRepo.AddQBOAccess(appClientId, appClientSecret, companyId, appOauthAccessToken, appOauthRefreshToken, sid);
             if (bRtn == true)
+            {
+                _logger.LogInfo("End FinalAuthorize for Subscriber " + sid);
                 return true;
+            }
             return false;
         }
     }

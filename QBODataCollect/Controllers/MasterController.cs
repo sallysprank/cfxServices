@@ -64,10 +64,11 @@ namespace QBODataCollect.Controllers
 
             foreach (Subscriber subs in subscriber)
             {
+                subscriberId = subs.Id;
+                _logger.LogInfo("Begin Subscriber " + subscriberId + " Authorization");
                 QBOAccess qboAccess = _qboaccessRepo.GetById(subscriberId);
                 // save Access Id
                 int qboAccessId = qboAccess.Id;
-                //throw new Exception("Exception while fetching QBO access record.");
 
                 // Refresh QBO connection
                 bRtn = RefreshQBO(qboAccess);
@@ -79,15 +80,18 @@ namespace QBODataCollect.Controllers
                     bRtn = _qboaccessRepo.UpdateQBOAccess(qboAccessId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
                     if (bRtn == false) return false;
                 }
-                catch
+                catch(Exception ex)
                 {
-                    // Need to add error processing
+                    _logger.LogError("Subscriber " + subscriberId + " " + ex.Message);
                     return false;
                 }
+                _logger.LogInfo("End Subscriber " + subscriberId + " Authorization");
 
                 //Time to get some data from QBO
+                _logger.LogInfo("Begin QBO Data Access for Subscriber " + subscriberId);
                 // Get and Update Customers & Invoices
                 bRtn = GetQBOCustomers(qboAccess);
+                _logger.LogInfo("End QBO Data Access for Subscriber " + subscriberId);
                 return true;
             }
             return true;
@@ -126,16 +130,15 @@ namespace QBODataCollect.Controllers
                             }
                             else
                             {
-                                //will need some error processing
+                                _logger.LogError("Unable to refresh QBO Authorization token for Subscriber " + qboAccess.SubscriberId);
                             }
                         }
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                //Response.Clear();
-                //await Response.WriteAsync(ex.Message + ex.InnerException);
+                _logger.LogError("Subscriber " + qboAccess.SubscriberId + " " + ex.Message);
                 return false;
             }
             return true;
@@ -224,9 +227,9 @@ namespace QBODataCollect.Controllers
                     }
                 }
             }
-            catch
+            catch(Exception ex)
             {
-                // Error Processing
+                _logger.LogError("Subscriber " + qboAccess.Id + " " + ex.Message);
                 return false;
             }
             foreach (var cust in customerList)
@@ -370,8 +373,7 @@ namespace QBODataCollect.Controllers
             }
             catch (Exception ex)
             {
-                // Error Processing
-                string txnResult = ex.Message.ToString();
+                _logger.LogError("Subscriber " + subscriberId + " " + ex.Message);
                 return false;
             }
 
@@ -420,9 +422,9 @@ namespace QBODataCollect.Controllers
                 }
                 return toDay;
             }
-            catch
+            catch(Exception ex)
             {
-                // Error Processing
+                _logger.LogError("Subscriber " + subscriberId + " " + ex.Message);
                 return toDay;
             }
         }
@@ -445,7 +447,6 @@ namespace QBODataCollect.Controllers
             }
             catch (Exception ex)
             {
-                string txnError = ex.Message.ToString();
                 return string.Empty;
             }
             

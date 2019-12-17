@@ -20,6 +20,7 @@ namespace QBODataCollect
     {
         public Startup(IConfiguration configuration)
         {
+            //In development and running frm VS the current folder is Program Files\IIS Express
             LogManager.LoadConfiguration(String.Concat(Directory.GetCurrentDirectory(), "/nlog.config"));
             Configuration = configuration;
         }
