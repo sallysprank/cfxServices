@@ -28,19 +28,6 @@ namespace QBODataCollect.Repositories
             }
         }
 
-        //public Subscriber GetByID(int id)
-        //{
-        //    using (IDbConnection conn = Connection)
-        //    {
-        //        var parameters = new { Id = id };
-        //        string sQuery = "SELECT Id FROM Subscriber WHERE Id = @Id";
-        //        conn.Open();
-        //        var result = conn.Query<Subscriber>(sQuery, parameters);
-        //        return result.FirstOrDefault();
-        //    }
-
-        //}
-
         public IEnumerable<Subscriber> GetById(int id)
         {
             IEnumerable<Subscriber> subscriber;

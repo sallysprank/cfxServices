@@ -17,9 +17,9 @@ namespace QBOAuthenticate.Models
         public string ClientSecret { get; set; }
         [Required, MaxLength(50)]
         public string Company { get; set; }
-        [Required, MaxLength(2048)]
+        [Required, MaxLength(4096)]
         public string AccessToken { get; set; }
-        [Required, MaxLength(150)]
+        [Required, MaxLength(1024)]
         public string RefreshToken { get; set; }
         [Required]
         public int SubscriberId { get; set; }

@@ -11,6 +11,7 @@ namespace QBOAuthenticate.Repositories.Interfaces
         QBOAccess GetById(int sId);
         bool UpdateQBOAccess(int id, string accessToken, string refreshToken, QBOAccess ourQBOAccess);
         bool AddQBOAccess(string clientId, string clientSecret, string companyId, string accessToken, string refreshToken, int subscriberId);
+        bool DeleteQBOAccess(int subscriberId);
         bool CheckExists(int subscriberId);
     }
 }

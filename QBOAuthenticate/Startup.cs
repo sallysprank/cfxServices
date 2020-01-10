@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Microsoft.AspNetCore.DataProtection;
 using QBOAuthenticate.Repositories;
 using QBOAuthenticate.Repositories.Interfaces;
 using Microsoft.AspNetCore.Builder;
@@ -35,6 +36,7 @@ namespace QBOAuthenticate
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
             services.AddDistributedMemoryCache();  //Sessions
             services.AddSession();  //Sessions
+            services.AddDataProtection(); // Add Data Protection
             services.AddHangfire(configuration => configuration
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
             .UseSimpleAssemblyNameTypeSerializer()

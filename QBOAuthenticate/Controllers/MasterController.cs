@@ -145,11 +145,16 @@ namespace QBOAuthenticate.Controllers
                 _logger.LogError("Subscriber " + sid + " " + ex.Message);
                 return false;
             }
-            //Add our QBOAccess record
-            bool exists = _qboaccessRepo.CheckExists(sid);
-            if (exists == false)
-                return false;
-            bool bRtn = _qboaccessRepo.AddQBOAccess(appClientId, appClientSecret, companyId, appOauthAccessToken, appOauthRefreshToken, sid);
+            // Get/Update our QBOAccess record
+            bool bRtn;
+            QBOAccess qboAccess = _qboaccessRepo.GetById(sid);
+            if (qboAccess == null)
+            {
+                bRtn = _qboaccessRepo.AddQBOAccess(appClientId,appClientSecret, companyId, appOauthAccessToken, appOauthRefreshToken, sid);
+            }
+            else {
+                bRtn = _qboaccessRepo.UpdateQBOAccess(qboAccess.Id, appOauthAccessToken, appOauthRefreshToken, qboAccess);
+            }
             if (bRtn == true)
             {
                 _logger.LogInfo("End FinalAuthorize for Subscriber " + sid);

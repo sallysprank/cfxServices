@@ -44,7 +44,7 @@ namespace QBODataCollect.Models
 
         public decimal Balance { get; set; }
 
-        [StringLength(2000)]
+        [StringLength(1000)]
         public string Notes { get; set; }
 
         public int SubscriberId { get; set; }

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.DataProtection;
 using System.Data;
 using System.Data.SqlClient;
 
@@ -14,10 +15,12 @@ namespace QBODataCollect.Repositories
     public class QBOAccessRepository : IQBOAccessRepository
     {
         private readonly IConfiguration _config;
+        private readonly IDataProtector _protector;
 
-        public QBOAccessRepository(IConfiguration config)
+        public QBOAccessRepository(IConfiguration config, IDataProtectionProvider provider)
         {
             _config = config;
+            _protector = provider.CreateProtector("cfxpert_qbo_access");
         }
 
         public IDbConnection Connection

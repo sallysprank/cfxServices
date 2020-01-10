@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 
 namespace QBODataCollect.Models
 {
@@ -18,6 +16,7 @@ namespace QBODataCollect.Models
         public String InvTxns { get; set; }
         public DateTime InvLastPymtDate { get; set; }
         public DateTime InvLastReminder { get; set; }
+        [StringLength(1000)]
         public string Notes { get; set; }
         public bool SendAutoReminder { get; set; }
     }

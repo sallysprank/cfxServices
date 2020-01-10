@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using QBODataCollect.Models;
 using QBODataCollect.Repositories;
@@ -12,7 +10,6 @@ using System.Text;
 using System.IO;
 using System.Data;
 using LoggerService;
-using System.Collections;
 
 namespace QBODataCollect.Controllers
 {

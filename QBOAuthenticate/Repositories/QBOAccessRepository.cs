@@ -2,22 +2,23 @@
 using QBOAuthenticate.Repositories.Interfaces;
 using QBOAuthenticate.Models;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace QBOAuthenticate.Repositories
 {
     public class QBOAccessRepository : IQBOAccessRepository
     {
         private readonly IConfiguration _config;
+        private readonly IDataProtector _protector;
 
-        public QBOAccessRepository(IConfiguration config)
+        public QBOAccessRepository(IConfiguration config, IDataProtectionProvider provider)
         {
             _config = config;
+            _protector = provider.CreateProtector("cfxpert_qbo_access");
         }
 
         public IDbConnection Connection
@@ -50,6 +51,7 @@ namespace QBOAuthenticate.Repositories
                 {
                     return false;
                 }
+                //string protectRefreshToken = _protector.Protect(refreshToken);
                 using (IDbConnection conn = Connection)
                 {
                     string sQuery = @"UPDATE [dbo].[QBOAccess] SET [RefreshToken] = @refreshToken, [AccessToken] = @accessToken " +
@@ -88,6 +90,7 @@ namespace QBOAuthenticate.Repositories
                         Company = companyId,
                         AccessToken = accessToken,
                         RefreshToken = refreshToken,
+                        //RefreshToken = _protector.Protect(refreshToken),
                         SubscriberId = subscriberId
                     });
                     if (result > 0)
@@ -100,6 +103,26 @@ namespace QBOAuthenticate.Repositories
             catch (Exception ex)
             {
                 string addError = ex.Message.ToString();
+                return false;
+            }
+
+        }
+
+        public bool DeleteQBOAccess(int sid)
+        {
+            try
+            {
+                using (IDbConnection conn = Connection)
+                {
+                    string sQuery = "DELETE QBOAccess WHERE SubscriberId = @SubscriberId";
+                    conn.Open();
+                    var results = conn.Execute(sQuery, new {SubscriberId = sid});
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                var exResult = ex.Message;
                 return false;
             }
 
