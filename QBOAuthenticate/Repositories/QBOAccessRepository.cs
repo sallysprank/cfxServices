@@ -39,7 +39,16 @@ namespace QBOAuthenticate.Repositories
                 sQuery = "SELECT * FROM QBOAccess WHERE SubscriberId = @SubscriberId";
                 conn.Open();
                 var result = conn.Query<QBOAccess>(sQuery, @params);
-                return result.FirstOrDefault();
+                if (result.FirstOrDefault() != null)
+                {
+                    QBOAccess accessResult = result.FirstOrDefault();
+                    string sRefresh = _protector.Unprotect(accessResult.RefreshToken);
+                    accessResult.RefreshToken = sRefresh;
+                    return accessResult;
+                }
+                {
+                    return result.FirstOrDefault();
+                }
             }
         }
 
@@ -51,13 +60,13 @@ namespace QBOAuthenticate.Repositories
                 {
                     return false;
                 }
-                //string protectRefreshToken = _protector.Protect(refreshToken);
+                string protectRefreshToken = _protector.Protect(refreshToken);
                 using (IDbConnection conn = Connection)
                 {
-                    string sQuery = @"UPDATE [dbo].[QBOAccess] SET [RefreshToken] = @refreshToken, [AccessToken] = @accessToken " +
+                    string sQuery = @"UPDATE [dbo].[QBOAccess] SET [RefreshToken] = @protectRefreshToken, [AccessToken] = @accessToken " +
                         "WHERE Id = @id";
                     conn.Open();
-                    var results = conn.Execute(@sQuery, new { id, refreshToken, accessToken });
+                    var results = conn.Execute(@sQuery, new { id, protectRefreshToken, accessToken });
                     if (results > 0)
                     {
                         return true;
@@ -89,8 +98,8 @@ namespace QBOAuthenticate.Repositories
                         ClientSecret = clientSecret,
                         Company = companyId,
                         AccessToken = accessToken,
-                        RefreshToken = refreshToken,
-                        //RefreshToken = _protector.Protect(refreshToken),
+                        //RefreshToken = refreshToken,
+                        RefreshToken = _protector.Protect(refreshToken),
                         SubscriberId = subscriberId
                     });
                     if (result > 0)
