@@ -1,6 +1,6 @@
 ﻿using Dapper;
-using QBOAuthenticate.Repositories.Interfaces;
-using QBOAuthenticate.Models;
+using DataServices.Repositories.Interfaces;
+using DataServices.Models;
 using System;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
@@ -8,7 +8,7 @@ using System.Data;
 using System.Data.SqlClient;
 using Microsoft.AspNetCore.DataProtection;
 
-namespace QBOAuthenticate.Repositories
+namespace DataServices.Repositories
 {
     public class QBOAccessRepository : IQBOAccessRepository
     {

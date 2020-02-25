@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.438
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29728.190
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QBODataCollect", "QBODataCollect\QBODataCollect.csproj", "{1E71B867-B539-4CAF-9FFD-BD76C3C00D88}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -11,6 +11,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LoggerService", "LoggerService\LoggerService.csproj", "{A434FFD6-D538-4D66-A430-5AC5784471DA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QBOAuthenticate", "QBOAuthenticate\QBOAuthenticate.csproj", "{D11C376A-C896-4772-B986-D4BD9C0B9423}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataServices", "DataServices\DataServices.csproj", "{3D9632B6-0122-4324-A0D3-3B71259984D8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,6 +32,10 @@ Global
 		{D11C376A-C896-4772-B986-D4BD9C0B9423}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D11C376A-C896-4772-B986-D4BD9C0B9423}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D11C376A-C896-4772-B986-D4BD9C0B9423}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D9632B6-0122-4324-A0D3-3B71259984D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D9632B6-0122-4324-A0D3-3B71259984D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D9632B6-0122-4324-A0D3-3B71259984D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D9632B6-0122-4324-A0D3-3B71259984D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,11 +1,12 @@
 ﻿using System;
 using System.IO;
 using Microsoft.AspNetCore.DataProtection;
-using QBOAuthenticate.Repositories;
-using QBOAuthenticate.Repositories.Interfaces;
+using DataServices.Repositories;
+using DataServices.Repositories.Interfaces;
+//using QBOAuthenticate.Repositories;
+//using QBOAuthenticate.Repositories.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Hangfire;
@@ -13,6 +14,7 @@ using Hangfire.SqlServer;
 using LoggerService;
 using NLog;
 using QBOAuthenticate.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace QBOAuthenticate
 {
@@ -33,7 +35,7 @@ namespace QBOAuthenticate
             services.AddTransient<IQBOAccessRepository, QBOAccessRepository>();
             services.AddTransient<IInvoiceRepository, InvoiceRepository>();
             services.AddSingleton<ILoggerManager, LoggerManager>();
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddControllers(); // replaces Add.MVC in 2.2
             services.AddDistributedMemoryCache();  //Sessions
             services.AddSession();  //Sessions
             services.AddDataProtection(); // Add Data Protection
@@ -53,7 +55,7 @@ namespace QBOAuthenticate
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerManager logger)
+        public void Configure(IApplicationBuilder app, IHostEnvironment env, ILoggerManager logger)
         {
             if (env.IsDevelopment())
             {
@@ -62,8 +64,12 @@ namespace QBOAuthenticate
 
             app.ConfigureCustomExceptionMiddleware();
             app.UseSession();
-            app.UseMvc(); //includes default routing
-            
+            app.UseRouting();  //replaces app.UseMvc in 2.2
+            app.UseEndpoints(endpoints => //added with 3.1
+            {
+                endpoints.MapDefaultControllerRoute();
+            });
+
             app.UseStaticFiles();
             app.UseHangfireDashboard();
             app.UseHangfireServer();

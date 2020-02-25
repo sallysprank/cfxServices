@@ -1,7 +1,9 @@
 ﻿using System;
 using System.IO;
-using QBODataCollect.Repositories;
-using QBODataCollect.Repositories.Interfaces;
+using DataServices.Repositories;
+using DataServices.Repositories.Interfaces;
+//using QBODataCollect.Repositories;
+//using QBODataCollect.Repositories.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -11,9 +13,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Hangfire;
 using Hangfire.SqlServer;
 using LoggerService;
-using QBODataCollect.Controllers;
 using NLog;
 using QBODataCollect.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace QBODataCollect
 {
@@ -36,7 +38,7 @@ namespace QBODataCollect
             services.AddTransient<IInvoiceRepository, InvoiceRepository>();
             services.AddTransient<ISubscriberRepository, SubscriberRepository>();
             services.AddSingleton<ILoggerManager, LoggerManager>();
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddControllers(); // replaces Add.Mvc in 2.2
             services.AddDataProtection();
             services.AddHangfire(configuration => configuration
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
@@ -54,7 +56,7 @@ namespace QBODataCollect
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerManager logger)
+        public void Configure(IApplicationBuilder app, IHostEnvironment env, ILoggerManager logger)
         {
             if (env.IsDevelopment())
             {
@@ -62,8 +64,12 @@ namespace QBODataCollect
             }
 
             app.ConfigureCustomExceptionMiddleware();
-            app.UseMvc();
+            app.UseRouting(); // replaces app.UseMvc in 2.2
             app.UseStaticFiles();
+            app.UseEndpoints(endpoints => // Added with 3.1
+            {
+                endpoints.MapDefaultControllerRoute();
+            });
             app.UseHangfireDashboard();
             app.UseHangfireServer();
             //BackgroundJob.Enqueue<MasterController>(x => x.Client());
