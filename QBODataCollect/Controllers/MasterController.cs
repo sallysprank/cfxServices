@@ -24,20 +24,25 @@ namespace QBODataCollect.Controllers
         private readonly IQBOAccessRepository _qboaccessRepo;
         private readonly IInvoiceRepository _invoiceRepo;
         private readonly ISubscriberRepository _subscriberRepo;
+        private readonly IErrorLogRepository _errorLogRepo;
         private ILoggerManager _logger;
         private int subscriberId;
+        private readonly string serviceName = "";
+        private string currentMethodName = "";
         private string appOauthAccessToken = "";
         private string appOauthRefreshToken = "";
         private List<Customer> customerList = new List<Customer>();
         private List<Invoice> invoiceList = new List<Invoice>();
 
-        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ISubscriberRepository subscriberRepo, ILoggerManager logger)
+        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ISubscriberRepository subscriberRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo)
         {
             _customerRepo = customerRepo;
             _qboaccessRepo = qboaccessRepo;
             _invoiceRepo = invoiceRepo;
             _subscriberRepo = subscriberRepo;
             _logger = logger;
+            _errorLogRepo = errorLogRepo;
+            serviceName = GetType().Namespace.Substring(0, GetType().Namespace.IndexOf('.'));
         }
 
         // GET: api/master/Id
@@ -48,6 +53,7 @@ namespace QBODataCollect.Controllers
             bool bRtn;
             subscriberId = id;
             IEnumerable<Subscriber> subscriber;
+            currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
 
             if (subscriberId == 0)
             {
@@ -82,7 +88,14 @@ namespace QBODataCollect.Controllers
                 }
                 catch(Exception ex)
                 {
-                    _logger.LogError("Subscriber " + subscriberId + " " + ex.Message);
+                    _errorLogRepo.InsertErrorLog(new ErrorLog
+                    {
+                        SubscriberId = subscriberId,
+                        ErrorMessage = ex.Message,
+                        ServiceName = serviceName,
+                        MethodName = currentMethodName,
+                        ErrorDateTime = DateTime.Now
+                    });
                     return false;
                 }
                 _logger.LogInfo("End Subscriber " + subscriberId + " Authorization");
@@ -111,6 +124,7 @@ namespace QBODataCollect.Controllers
             connString.InitiateOAuth = "GETANDREFRESH";
             connString.Logfile = "c:\\users\\public\\documents\\rssApiLog.txt";
             connString.Verbosity = "5";
+            currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
 
             try
             {
@@ -130,7 +144,15 @@ namespace QBODataCollect.Controllers
                             }
                             else
                             {
-                                _logger.LogError("Unable to refresh QBO Authorization token for Subscriber " + qboAccess.SubscriberId);
+                                _errorLogRepo.InsertErrorLog(new ErrorLog
+                                {
+                                    SubscriberId = qboAccess.SubscriberId,
+                                    ErrorMessage = "Unable to refresh QBO Authorization token for Subscriber",
+                                    ServiceName = serviceName,
+                                    MethodName = currentMethodName,
+                                    ErrorDateTime = DateTime.Now
+                                });
+                                return false;
                             }
                         }
                     }
@@ -138,7 +160,14 @@ namespace QBODataCollect.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Subscriber " + qboAccess.SubscriberId + " " + ex.Message);
+                _errorLogRepo.InsertErrorLog(new ErrorLog
+                {
+                    SubscriberId = qboAccess.SubscriberId,
+                    ErrorMessage = ex.Message,
+                    ServiceName = serviceName,
+                    MethodName = currentMethodName,
+                    ErrorDateTime = DateTime.Now
+                });
                 return false;
             }
             return true;
@@ -155,6 +184,19 @@ namespace QBODataCollect.Controllers
             connString.CompanyId = qboAccess.Company;
             connString.OAuthVersion = "2.0";
             connString.UseSandbox = true;
+            // To insert error log in catch statement, made this variable public
+            currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
+            int colIndex = 0;
+            string QBCId;
+            string GName;
+            string FName;
+            string Suf;
+            string DName = "";
+            string CName;
+            string PPhone;
+            string MPhone;
+            string PEmail;
+            string Nte;
 
             try
             {
@@ -164,17 +206,7 @@ namespace QBODataCollect.Controllers
                     {
                         using (QuickBooksOnlineDataReader reader = cmdQBO.ExecuteReader())
                         {
-                            int colIndex = 0;
-                            string QBCId;
-                            string GName;
-                            string FName;
-                            string Suf;
-                            string DName;
-                            string CName;
-                            string PPhone;
-                            string MPhone;
-                            string PEmail;
-                            string Nte;
+                           
 
                             while (reader.Read())
                             {
@@ -229,7 +261,15 @@ namespace QBODataCollect.Controllers
             }
             catch(Exception ex)
             {
-                _logger.LogError("Subscriber " + qboAccess.Id + " " + ex.Message);
+                _errorLogRepo.InsertErrorLog(new ErrorLog
+                {
+                    SubscriberId = qboAccess.Id,
+                    ErrorMessage = ex.Message,
+                    DisplayName = DName,
+                    ServiceName = serviceName,
+                    MethodName = currentMethodName,
+                    ErrorDateTime = DateTime.Now
+                });
                 return false;
             }
             foreach (var cust in customerList)
@@ -263,6 +303,18 @@ namespace QBODataCollect.Controllers
         {
             // Need to clear the list
             invoiceList = new List<Invoice>();
+            // To insert error log in catch statement, made this variable public
+            currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
+            bool addInvoice = false;
+            int CustId;
+            string QBIId;
+            int colIndex = 0;
+            string IDNbr = "";
+            DateTime IDate;
+            DateTime IDueDate;
+            Decimal ITotalAmt;
+            Decimal IBalance;
+            string ITxns;
             try
             {
                 using (QuickBooksOnlineConnection connInv = new QuickBooksOnlineConnection(connString.ToString()))
@@ -271,16 +323,7 @@ namespace QBODataCollect.Controllers
                     {
                         using (QuickBooksOnlineDataReader reader = cmdInv.ExecuteReader())
                         {
-                            bool addInvoice = false;
-                            int CustId;
-                            string QBIId;
-                            int colIndex = 0;
-                            string IDNbr;
-                            DateTime IDate;
-                            DateTime IDueDate;
-                            Decimal ITotalAmt;
-                            Decimal IBalance;
-                            string ITxns;
+                           
                             DateTime ILastPymtDate = DateTime.MaxValue;
                             DateTime ILastReminder = DateTime.MaxValue;
                             while (reader.Read())
@@ -327,7 +370,7 @@ namespace QBODataCollect.Controllers
                                                 string txnType = xn["TxnType"].InnerXml;
                                                 if (txnType == "Payment")
                                                 {
-                                                    DateTime txnDate = GetPymtDate(txnId, connString);
+                                                    DateTime txnDate = GetPymtDate(txnId, connString, IDNbr);
                                                     //for test data
                                                     DateTime now = new DateTime(2014, 12, 31);
                                                     int monthDiff = GetMonthDifference(now, txnDate);
@@ -373,7 +416,15 @@ namespace QBODataCollect.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Subscriber " + subscriberId + " " + ex.Message);
+                _errorLogRepo.InsertErrorLog(new ErrorLog
+                {
+                    SubscriberId = subscriberId,
+                    ErrorMessage = ex.Message,
+                    InvDocNbr = IDNbr,
+                    ServiceName = serviceName,
+                    MethodName = currentMethodName,
+                    ErrorDateTime = DateTime.Now
+                });
                 return false;
             }
 
@@ -399,10 +450,11 @@ namespace QBODataCollect.Controllers
 
         //Get Invoice Payments
 
-        private DateTime GetPymtDate(string txnId, QuickBooksOnlineConnectionStringBuilder connString)
+        private DateTime GetPymtDate(string txnId, QuickBooksOnlineConnectionStringBuilder connString, string IDNbr)
         {
             //For test data
             DateTime toDay = new DateTime(2014, 12, 31);
+            currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
             //DateTime toDay = DateTime.Now;
             try
             {
@@ -424,7 +476,15 @@ namespace QBODataCollect.Controllers
             }
             catch(Exception ex)
             {
-                _logger.LogError("Subscriber " + subscriberId + " " + ex.Message);
+                _errorLogRepo.InsertErrorLog(new ErrorLog
+                {
+                    SubscriberId = subscriberId,
+                    ErrorMessage = ex.Message,
+                    InvDocNbr = IDNbr,
+                    ServiceName = serviceName,
+                    MethodName = currentMethodName,
+                    ErrorDateTime = DateTime.Now
+                });
                 return toDay;
             }
         }

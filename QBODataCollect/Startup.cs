@@ -37,6 +37,7 @@ namespace QBODataCollect
             services.AddTransient<IQBOAccessRepository, QBOAccessRepository>();
             services.AddTransient<IInvoiceRepository, InvoiceRepository>();
             services.AddTransient<ISubscriberRepository, SubscriberRepository>();
+            services.AddTransient<IErrorLogRepository, ErrorLogRepository>();
             services.AddSingleton<ILoggerManager, LoggerManager>();
             services.AddControllers(); // replaces Add.Mvc in 2.2
             services.AddDataProtection();
