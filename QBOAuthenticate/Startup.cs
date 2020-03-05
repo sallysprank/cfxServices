@@ -34,6 +34,7 @@ namespace QBOAuthenticate
             services.AddTransient<ICustomerRepository, CustomerRepository>();
             services.AddTransient<IQBOAccessRepository, QBOAccessRepository>();
             services.AddTransient<IInvoiceRepository, InvoiceRepository>();
+            services.AddTransient<IErrorLogRepository, ErrorLogRepository>();
             services.AddSingleton<ILoggerManager, LoggerManager>();
             services.AddControllers(); // replaces Add.MVC in 2.2
             services.AddDistributedMemoryCache();  //Sessions

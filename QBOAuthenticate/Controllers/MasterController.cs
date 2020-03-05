@@ -27,17 +27,22 @@ namespace QBOAuthenticate.Controllers
         private string appOauthAccessToken = "";
         private string appOauthRefreshToken = "";
         private string companyId = "";
+        private readonly string serviceName = "";
+        private string currentMethodName = "";
         private readonly ICustomerRepository _customerRepo;
         private readonly IQBOAccessRepository _qboaccessRepo;
         private readonly IInvoiceRepository _invoiceRepo;
+        private readonly IErrorLogRepository _errorLogRepo;
         private ILoggerManager _logger;
 
-        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ILoggerManager logger)
+        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo)
         {
             _customerRepo = customerRepo;
             _qboaccessRepo = qboaccessRepo;
             _invoiceRepo = invoiceRepo;
+            _errorLogRepo = errorLogRepo;
             _logger = logger;
+            serviceName = GetType().Namespace.Substring(0, GetType().Namespace.IndexOf('.'));
         }
 
         // GET: api/master/beginauthorize/id
@@ -54,6 +59,8 @@ namespace QBOAuthenticate.Controllers
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
             String callbackURL = "http://localhost:1339/api/master/finalauthorize";
+            currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
+
 
             try
             {
@@ -72,7 +79,14 @@ namespace QBOAuthenticate.Controllers
                             }
                             else
                             {
-                                _logger.LogError("Subscriber " + id + "-No Authorization URL available");
+                                _errorLogRepo.InsertErrorLog(new ErrorLog
+                                {
+                                    SubscriberId = id,
+                                    ErrorMessage = "No Authorization URL available",
+                                    ServiceName = serviceName,
+                                    MethodName = currentMethodName,
+                                    ErrorDateTime = DateTime.Now
+                                });
                                 return false;
                             }
                         }
@@ -81,7 +95,14 @@ namespace QBOAuthenticate.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Subscriber " + id + " " + ex.Message);
+                _errorLogRepo.InsertErrorLog(new ErrorLog
+                {
+                    SubscriberId = id,
+                    ErrorMessage = ex.Message,
+                    ServiceName = serviceName,
+                    MethodName = currentMethodName,
+                    ErrorDateTime = DateTime.Now
+                });
                 return false;
             }
             _logger.LogInfo("End BeginAuthorize for Subscriber " + id);
@@ -113,6 +134,7 @@ namespace QBOAuthenticate.Controllers
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
             string callbackURL = "http://localhost:1339/api/master/finalauthorize";
+            currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
 
             try
             {
@@ -135,7 +157,14 @@ namespace QBOAuthenticate.Controllers
                             }
                             else
                             {
-                                _logger.LogError("Subscriber " + sid + "-No OAuthRefreshToken available");
+                                _errorLogRepo.InsertErrorLog(new ErrorLog
+                                {
+                                    SubscriberId = sid,
+                                    ErrorMessage = "No OAuthRefreshToken available",
+                                    ServiceName = serviceName,
+                                    MethodName = currentMethodName,
+                                    ErrorDateTime = DateTime.Now
+                                });
                                 return false;
 
                             }
@@ -145,7 +174,14 @@ namespace QBOAuthenticate.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Subscriber " + sid + " " + ex.Message);
+                _errorLogRepo.InsertErrorLog(new ErrorLog
+                {
+                    SubscriberId = sid,
+                    ErrorMessage = ex.Message,
+                    ServiceName = serviceName,
+                    MethodName = currentMethodName,
+                    ErrorDateTime = DateTime.Now
+                });
                 return false;
             }
             // Get/Update our QBOAccess record
