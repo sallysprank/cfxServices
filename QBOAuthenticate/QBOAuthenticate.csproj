@@ -39,10 +39,12 @@
     <PackageReference Include="Hangfire.AspNetCore" Version="1.7.8" />
     <PackageReference Include="Hangfire.Core" Version="1.7.8" />
     <PackageReference Include="Hangfire.SqlServer" Version="1.7.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.2" />
     <PackageReference Include="Microsoft.AspNetCore.Razor.Design" Version="2.2.0" PrivateAssets="All" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.1" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.6.1" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="5.6.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -51,13 +53,13 @@
 
   <ItemGroup>
     <Reference Include="CData.EntityFrameworkCore.QuickBooksOnline">
-      <HintPath>..\..\..\..\..\..\..\Program Files\CData\CData ADO.NET Provider for QuickBooks Online 2019\lib\netstandard2.0\EFCORE21\CData.EntityFrameworkCore.QuickBooksOnline.dll</HintPath>
+      <HintPath>C:\Program Files\CData\CData ADO.NET Provider for QuickBooks Online 2019\lib\netstandard2.0\EFCORE20\CData.EntityFrameworkCore.QuickBooksOnline.dll</HintPath>
     </Reference>
     <Reference Include="LoggerService">
-      <HintPath>..\LoggerService\bin\Debug\netcoreapp2.0\LoggerService.dll</HintPath>
+      <HintPath>..\LoggerService\bin\Debug\netcoreapp3.1\LoggerService.dll</HintPath>
     </Reference>
     <Reference Include="System.Data.CData.QuickBooksOnline">
-      <HintPath>..\..\..\..\..\..\..\Program Files\CData\CData ADO.NET Provider for QuickBooks Online 2019\lib\netstandard2.0\System.Data.CData.QuickBooksOnline.dll</HintPath>
+      <HintPath>C:\Program Files\CData\CData ADO.NET Provider for QuickBooks Online 2019\lib\netstandard2.0\System.Data.CData.QuickBooksOnline.dll</HintPath>
     </Reference>
   </ItemGroup>
 
@@ -77,7 +79,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
     <Folder Include="Repositories\" />
   </ItemGroup>
 

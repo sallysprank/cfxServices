@@ -13,11 +13,13 @@ using System.Text;
 using System.IO;
 using System.Data;
 using LoggerService;
+using Microsoft.AspNetCore.Authorization;
 
 namespace QBODataCollect.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class MasterController : ControllerBase
     {
         private readonly ICustomerRepository _customerRepo;

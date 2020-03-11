@@ -15,11 +15,13 @@ using System.Text;
 using System.IO;
 using System.Data;
 using LoggerService;
+using Microsoft.AspNetCore.Authorization;
 
 namespace QBOAuthenticate.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    [Authorize]
     public class MasterController : ControllerBase
     {
         private const string appClientId = "Q00xm3vqx90O704ifsLc2UZ2LTbbXvTx0LQHtNdDKQPHBxcHi0";

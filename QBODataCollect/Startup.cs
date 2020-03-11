@@ -16,6 +16,10 @@ using LoggerService;
 using NLog;
 using QBODataCollect.Extensions;
 using Microsoft.Extensions.Hosting;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using QBODataCollect.Helpers;
 
 namespace QBODataCollect
 {
@@ -53,6 +57,30 @@ namespace QBODataCollect
                 UseRecommendedIsolationLevel = true,
                 DisableGlobalLocks = true
             }));
+
+            var appSettingsSection = Configuration.GetSection("AppSettings");
+            services.Configure<AppSettings>(appSettingsSection);
+
+            // configure jwt authentication
+            var appSettings = appSettingsSection.Get<AppSettings>();
+            var key = Encoding.ASCII.GetBytes(appSettings.Secret);
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(x =>
+            {
+                x.RequireHttpsMetadata = false;
+                x.SaveToken = true;
+                x.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+            });
             //services.AddHangfireServer();
         }
 
@@ -67,6 +95,14 @@ namespace QBODataCollect
             app.ConfigureCustomExceptionMiddleware();
             app.UseRouting(); // replaces app.UseMvc in 2.2
             app.UseStaticFiles();
+            // global cors policy
+            app.UseCors(x => x
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader());
+
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.UseEndpoints(endpoints => // Added with 3.1
             {
                 endpoints.MapDefaultControllerRoute();

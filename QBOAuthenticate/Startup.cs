@@ -15,6 +15,12 @@ using LoggerService;
 using NLog;
 using QBOAuthenticate.Extensions;
 using Microsoft.Extensions.Hosting;
+using QBOAuthenticate.Helpers;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using QBOAuthenticate.Services;
+using QBOAuthenticate.Services.Interfaces;
 
 namespace QBOAuthenticate
 {
@@ -35,7 +41,10 @@ namespace QBOAuthenticate
             services.AddTransient<IQBOAccessRepository, QBOAccessRepository>();
             services.AddTransient<IInvoiceRepository, InvoiceRepository>();
             services.AddTransient<IErrorLogRepository, ErrorLogRepository>();
+            services.AddTransient<IAspNetUserRepository, AspNetUserRepository>();
             services.AddSingleton<ILoggerManager, LoggerManager>();
+            services.AddScoped<IUserService, UserService>();
+            services.AddCors();
             services.AddControllers(); // replaces Add.MVC in 2.2
             services.AddDistributedMemoryCache();  //Sessions
             services.AddSession();  //Sessions
@@ -52,6 +61,31 @@ namespace QBOAuthenticate
                 UseRecommendedIsolationLevel = true,
                 DisableGlobalLocks = true
             }));
+
+            var appSettingsSection = Configuration.GetSection("AppSettings");
+            services.Configure<AppSettings>(appSettingsSection);
+
+            // configure jwt authentication
+            var appSettings = appSettingsSection.Get<AppSettings>();
+            var key = Encoding.ASCII.GetBytes(appSettings.Secret);
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(x =>
+            {
+                x.RequireHttpsMetadata = false;
+                x.SaveToken = true;
+                x.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+            });
+
             //services.AddHangfireServer();
         }
 
@@ -66,6 +100,14 @@ namespace QBOAuthenticate
             app.ConfigureCustomExceptionMiddleware();
             app.UseSession();
             app.UseRouting();  //replaces app.UseMvc in 2.2
+                               // global cors policy
+            app.UseCors(x => x
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader());
+
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.UseEndpoints(endpoints => //added with 3.1
             {
                 endpoints.MapDefaultControllerRoute();
