@@ -34,6 +34,8 @@ namespace QBODataCollect
 
         public IConfiguration Configuration { get; }
 
+        readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
@@ -43,8 +45,17 @@ namespace QBODataCollect
             services.AddTransient<ISubscriberRepository, SubscriberRepository>();
             services.AddTransient<IErrorLogRepository, ErrorLogRepository>();
             services.AddSingleton<ILoggerManager, LoggerManager>();
+            services.AddCors(options =>
+            {
+                options.AddPolicy(MyAllowSpecificOrigins,
+                builder =>
+                {
+                    builder.WithOrigins("https://localhost:44352").AllowAnyHeader();
+                });
+            });
             services.AddControllers(); // replaces Add.Mvc in 2.2
             services.AddDataProtection();
+            services.AddMemoryCache();
             services.AddHangfire(configuration => configuration
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
             .UseSimpleAssemblyNameTypeSerializer()
@@ -96,10 +107,7 @@ namespace QBODataCollect
             app.UseRouting(); // replaces app.UseMvc in 2.2
             app.UseStaticFiles();
             // global cors policy
-            app.UseCors(x => x
-                .AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader());
+            app.UseCors(MyAllowSpecificOrigins);
 
             app.UseAuthentication();
             app.UseAuthorization();

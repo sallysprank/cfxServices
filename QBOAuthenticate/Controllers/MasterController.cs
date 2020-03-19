@@ -16,12 +16,13 @@ using System.IO;
 using System.Data;
 using LoggerService;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 
 namespace QBOAuthenticate.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    [Authorize]
     public class MasterController : ControllerBase
     {
         private const string appClientId = "Q00xm3vqx90O704ifsLc2UZ2LTbbXvTx0LQHtNdDKQPHBxcHi0";
@@ -36,19 +37,25 @@ namespace QBOAuthenticate.Controllers
         private readonly IInvoiceRepository _invoiceRepo;
         private readonly IErrorLogRepository _errorLogRepo;
         private ILoggerManager _logger;
+        private IMemoryCache _cache;
+        protected IConfiguration _configuration;
+        public int subscriberId { get; set; }
 
-        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo)
+        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo, IMemoryCache cache, IConfiguration configuration)
         {
             _customerRepo = customerRepo;
             _qboaccessRepo = qboaccessRepo;
             _invoiceRepo = invoiceRepo;
             _errorLogRepo = errorLogRepo;
             _logger = logger;
+            _cache = cache;
+            _configuration = configuration;
             serviceName = GetType().Namespace.Substring(0, GetType().Namespace.IndexOf('.'));
         }
 
         // GET: api/master/beginauthorize/id
         [HttpGet("{id}", Order = 1)]
+        [Authorize]
         public ActionResult<bool> BeginAuthorize(int id)
         {
             _logger.LogInfo("Start BeginAuthorize for Subscriber " + id);
@@ -60,7 +67,7 @@ namespace QBOAuthenticate.Controllers
             connString.UseSandbox = true;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
-            String callbackURL = "http://localhost:1339/api/master/finalauthorize";
+            String callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
             currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
 
 
@@ -111,12 +118,82 @@ namespace QBOAuthenticate.Controllers
             return true;
         }
 
+        [HttpGet("{id}", Order = 1)]
+        [Authorize]
+        public ActionResult<string> BeginAuthorizeForCFExpert(int id)
+        {
+            _logger.LogInfo("Start BeginAuthorize for Subscriber " + id);
+            _cache.Set("subscriberId", id);
+            var connString = new QuickBooksOnlineConnectionStringBuilder();
+            connString.Offline = false;
+            connString.OAuthClientId = appClientId;
+            connString.OAuthClientSecret = appClientSecret;
+            connString.UseSandbox = true;
+            connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
+            connString.Verbosity = "5";
+            String callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
+            currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
+            subscriberId = id;
+
+            try
+            {
+                using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
+                {
+                    using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAuthorizationURL", connQBO))
+                    {
+                        cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("CallbackURL", callbackURL));
+                        cmdQBO.CommandType = CommandType.StoredProcedure;
+
+                        using (QuickBooksOnlineDataReader reader = cmdQBO.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                return reader["URL"].ToString();
+                            }
+                            else
+                            {
+                                _errorLogRepo.InsertErrorLog(new ErrorLog
+                                {
+                                    SubscriberId = id,
+                                    ErrorMessage = "No Authorization URL available",
+                                    ServiceName = serviceName,
+                                    MethodName = currentMethodName,
+                                    ErrorDateTime = DateTime.Now
+                                });
+                                return "";
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _errorLogRepo.InsertErrorLog(new ErrorLog
+                {
+                    SubscriberId = id,
+                    ErrorMessage = ex.Message,
+                    ServiceName = serviceName,
+                    MethodName = currentMethodName,
+                    ErrorDateTime = DateTime.Now
+                });
+                return "";
+            }
+        }
+
         // GET: api/master
         [HttpGet(Order = 2)]
         public ActionResult<bool> FinalAuthorize()
         {
             string verifierToken = "";
-            int sid = (int)HttpContext.Session.GetInt32("subscriberId");
+            int sid;
+            try
+            {
+                sid = (int)HttpContext.Session.GetInt32("subscriberId");
+            }
+            catch(Exception)
+            {
+                sid = _cache.Get<int>("subscriberId");
+            }
             // will delete this
             //var qboQueryString = Request.Query;
             //foreach (var qbItem in qboQueryString.Keys)
@@ -135,7 +212,7 @@ namespace QBOAuthenticate.Controllers
             connString.UseSandbox = true;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
-            string callbackURL = "http://localhost:1339/api/master/finalauthorize";
+            string callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
             currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
 
             try

@@ -34,6 +34,8 @@ namespace QBOAuthenticate
 
         public IConfiguration Configuration { get; }
 
+        readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
@@ -44,11 +46,19 @@ namespace QBOAuthenticate
             services.AddTransient<IAspNetUserRepository, AspNetUserRepository>();
             services.AddSingleton<ILoggerManager, LoggerManager>();
             services.AddScoped<IUserService, UserService>();
-            services.AddCors();
+            services.AddCors(options =>
+            {
+                options.AddPolicy(MyAllowSpecificOrigins,
+                builder =>
+                {
+                    builder.WithOrigins("https://localhost:44352").AllowAnyHeader();
+                });
+            });
             services.AddControllers(); // replaces Add.MVC in 2.2
             services.AddDistributedMemoryCache();  //Sessions
             services.AddSession();  //Sessions
             services.AddDataProtection(); // Add Data Protection
+            services.AddMemoryCache();
             services.AddHangfire(configuration => configuration
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
             .UseSimpleAssemblyNameTypeSerializer()
@@ -101,10 +111,8 @@ namespace QBOAuthenticate
             app.UseSession();
             app.UseRouting();  //replaces app.UseMvc in 2.2
                                // global cors policy
-            app.UseCors(x => x
-                .AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader());
+            app.UseCors(MyAllowSpecificOrigins);
+            app.UseHttpsRedirection();
 
             app.UseAuthentication();
             app.UseAuthorization();
