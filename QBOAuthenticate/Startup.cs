@@ -51,7 +51,7 @@ namespace QBOAuthenticate
                 options.AddPolicy(MyAllowSpecificOrigins,
                 builder =>
                 {
-                    builder.WithOrigins("https://localhost:44352").AllowAnyHeader();
+                    builder.WithOrigins(Configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"]).AllowAnyHeader();
                 });
             });
             services.AddControllers(); // replaces Add.MVC in 2.2
