@@ -75,6 +75,7 @@ namespace QBOAuthenticate.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
+                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAuthorizationURL", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("CallbackURL", callbackURL));
@@ -139,6 +140,7 @@ namespace QBOAuthenticate.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
+                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAuthorizationURL", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("CallbackURL", callbackURL));
@@ -219,6 +221,7 @@ namespace QBOAuthenticate.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
+                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAccessToken", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("Authmode", "WEB"));
