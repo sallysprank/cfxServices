@@ -15,6 +15,12 @@ using LoggerService;
 using NLog;
 using QBOAuthenticate.Extensions;
 using Microsoft.Extensions.Hosting;
+using QBOAuthenticate.Helpers;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using QBOAuthenticate.Services;
+using QBOAuthenticate.Services.Interfaces;
 
 namespace QBOAuthenticate
 {
@@ -28,17 +34,31 @@ namespace QBOAuthenticate
 
         public IConfiguration Configuration { get; }
 
+        readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddTransient<ICustomerRepository, CustomerRepository>();
             services.AddTransient<IQBOAccessRepository, QBOAccessRepository>();
             services.AddTransient<IInvoiceRepository, InvoiceRepository>();
+            services.AddTransient<IErrorLogRepository, ErrorLogRepository>();
+            services.AddTransient<IAspNetUserRepository, AspNetUserRepository>();
             services.AddSingleton<ILoggerManager, LoggerManager>();
+            services.AddScoped<IUserService, UserService>();
+            services.AddCors(options =>
+            {
+                options.AddPolicy(MyAllowSpecificOrigins,
+                builder =>
+                {
+                    builder.WithOrigins(Configuration["CFXServiceConfiguration:CFExpertApplicationEndPoint"]).AllowAnyHeader();
+                });
+            });
             services.AddControllers(); // replaces Add.MVC in 2.2
             services.AddDistributedMemoryCache();  //Sessions
             services.AddSession();  //Sessions
             services.AddDataProtection(); // Add Data Protection
+            services.AddMemoryCache();
             services.AddHangfire(configuration => configuration
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
             .UseSimpleAssemblyNameTypeSerializer()
@@ -51,6 +71,31 @@ namespace QBOAuthenticate
                 UseRecommendedIsolationLevel = true,
                 DisableGlobalLocks = true
             }));
+
+            var appSettingsSection = Configuration.GetSection("AppSettings");
+            services.Configure<AppSettings>(appSettingsSection);
+
+            // configure jwt authentication
+            var appSettings = appSettingsSection.Get<AppSettings>();
+            var key = Encoding.ASCII.GetBytes(appSettings.Secret);
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(x =>
+            {
+                x.RequireHttpsMetadata = false;
+                x.SaveToken = true;
+                x.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+            });
+
             //services.AddHangfireServer();
         }
 
@@ -65,6 +110,12 @@ namespace QBOAuthenticate
             app.ConfigureCustomExceptionMiddleware();
             app.UseSession();
             app.UseRouting();  //replaces app.UseMvc in 2.2
+                               // global cors policy
+            app.UseCors(MyAllowSpecificOrigins);
+            app.UseHttpsRedirection();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.UseEndpoints(endpoints => //added with 3.1
             {
                 endpoints.MapDefaultControllerRoute();
