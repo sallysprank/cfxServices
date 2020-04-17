@@ -376,8 +376,9 @@ namespace QBODataCollect.Controllers
                                                 if (txnType == "Payment")
                                                 {
                                                     DateTime txnDate = GetPymtDate(txnId, connString, IDNbr);
+                                                    DateTime now = DateTime.Now;
                                                     //for test data
-                                                    DateTime now = new DateTime(2014, 12, 31);
+                                                    //DateTime now = new DateTime(2014, 12, 31);
                                                     int monthDiff = GetMonthDifference(now, txnDate);
                                                     if (monthDiff < 6)
                                                     {
@@ -458,9 +459,9 @@ namespace QBODataCollect.Controllers
         private DateTime GetPymtDate(string txnId, QuickBooksOnlineConnectionStringBuilder connString, string IDNbr)
         {
             //For test data
-            DateTime toDay = new DateTime(2014, 12, 31);
+            //DateTime toDay = new DateTime(2014, 12, 31);
             currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
-            //DateTime toDay = DateTime.Now;
+            DateTime toDay = DateTime.Now;
             try
             {
                 using (QuickBooksOnlineConnection connPymt = new QuickBooksOnlineConnection(connString.ToString()))
