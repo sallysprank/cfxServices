@@ -107,7 +107,9 @@ namespace QBODataCollect.Controllers
                 // Get and Update Customers & Invoices
                 bRtn = GetQBOCustomers(qboAccess);
                 _logger.LogInfo("End QBO Data Access for Subscriber " + subscriberId);
-                return true;
+                //Update the last sync date in the subscriber table
+                bRtn = _subscriberRepo.UpdateSubscriber(subscriberId, DateTime.Now, subs);
+                if (bRtn == false) return false;
             }
             return true;
         }
@@ -206,7 +208,7 @@ namespace QBODataCollect.Controllers
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
                     connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
-                    using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("Select * FROM Customers", connQBO))
+                    using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("Select * FROM Customers WHERE Active IN (true,false)", connQBO))
                     {
                         using (QuickBooksOnlineDataReader reader = cmdQBO.ExecuteReader())
                         {
@@ -357,43 +359,51 @@ namespace QBODataCollect.Controllers
                                 {
                                     // we always want to add the invoice if the balance > 0
                                     addInvoice = true;
-                                    // Get the last payment date
-                                    XmlDocument xDoc = new XmlDocument();
-                                    // Convert string to stream
-                                    byte[] byteArray = Encoding.ASCII.GetBytes(ITxns);
-                                    MemoryStream stream = new MemoryStream(byteArray);
-                                    if (stream.Length > 0)
+                                }
+                                // Get the last payment date
+                                XmlDocument xDoc = new XmlDocument();
+                                // Convert string to stream
+                                byte[] byteArray = Encoding.ASCII.GetBytes(ITxns);
+                                MemoryStream stream = new MemoryStream(byteArray);
+                                if (stream.Length > 0)
+                                {
+                                    xDoc.Load(stream);
+                                    XmlNodeList xnList = xDoc.SelectNodes("/LinkedTxnAggregate/Row");
+                                    // If we have transaction information, process it
+                                    if (xnList.Count > 0)
                                     {
-                                        xDoc.Load(stream);
-                                        XmlNodeList xnList = xDoc.SelectNodes("/LinkedTxnAggregate/Row");
-                                        // If we have transaction information, process it
-                                        if (xnList.Count > 0)
+                                        foreach (XmlNode xn in xnList)
                                         {
-                                            foreach (XmlNode xn in xnList)
+                                            string txnId = xn["TxnId"].InnerXml;
+                                            string txnType = xn["TxnType"].InnerXml;
+                                            if (txnType == "Payment")
                                             {
-                                                string txnId = xn["TxnId"].InnerXml;
-                                                string txnType = xn["TxnType"].InnerXml;
-                                                if (txnType == "Payment")
+                                                DateTime txnDate = GetPymtDate(txnId, connString, IDNbr);
+                                                DateTime now = DateTime.Now;
+                                                //for test data
+                                                //DateTime now = new DateTime(2014, 12, 31);
+                                                int monthDiff = GetMonthDifference(now, txnDate);
+                                                if (monthDiff < 6)
                                                 {
-                                                    DateTime txnDate = GetPymtDate(txnId, connString, IDNbr);
-                                                    DateTime now = DateTime.Now;
-                                                    //for test data
-                                                    //DateTime now = new DateTime(2014, 12, 31);
-                                                    int monthDiff = GetMonthDifference(now, txnDate);
-                                                    if (monthDiff < 6)
+                                                    ILastPymtDate = txnDate;
+                                                    addInvoice = true;
+                                                    break;
+                                                }
+                                                else
+                                                {
+                                                    if (addInvoice == true)
                                                     {
+                                                        //Balance is greater than zero
+                                                        //Add the invoice
                                                         ILastPymtDate = txnDate;
-                                                        addInvoice = true;
-                                                        break;
                                                     }
                                                     else
                                                     {
                                                         addInvoice = false;
-                                                        break;
                                                     }
+                                                    break;
                                                 }
                                             }
-
                                         }
                                     }
                                 }

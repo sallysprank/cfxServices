@@ -54,5 +54,34 @@ namespace QBODataCollect.Repositories
             }
 
         }
+
+        public bool UpdateSubscriber(int id, DateTime lastSync, Subscriber ourSubscriber)
+        {
+            try
+            {
+                if (id != ourSubscriber.Id)
+                {
+                    return false;
+                }
+                using (IDbConnection conn = Connection)
+                {
+                    string sQuery = @"UPDATE [dbo].[Subscriber] SET [DateofLastSync] = @lastSync " +
+                        "WHERE Id = @id";
+                    conn.Open();
+                    var results = conn.Execute(@sQuery, new { id, lastSync });
+                    if (results > 0)
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                var exResult = ex.Message;
+                return false;
+            }
+
+        }
     }
 }

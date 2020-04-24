@@ -41,20 +41,25 @@ namespace DataServices.Models
         [DataType(DataType.Date)]
         public DateTime SignUpDate { get; set; }
 
-        //#region  Chargebee Related Fields
-        //[Required]
-        //public string SubscriberEmail { get; set; }
+        #region  Chargebee Related Fields
+        [Required]
+        public string SubscriberEmail { get; set; }
 
-        //public string SubscriptionId { get; set; }
+        public string SubscriptionId { get; set; }
 
-        //public string CustomerId { get; set; }
-        //#endregion
+        public string CustomerId { get; set; }
+        #endregion
 
-        ////public ICollection<ApplicationUsers> Users { get; set; }
+        //public ICollection<ApplicationUsers> Users { get; set; }
 
-        //[StringLength(100)]
-        //[DataType(DataType.EmailAddress)]
-        //public string ReminderEmailAddress { get; set; }
+        [StringLength(100)]
+        [DataType(DataType.EmailAddress)]
+        public string ReminderEmailAddress { get; set; }
+        public Boolean SendAutoReminders { get; set; }
+        public Boolean SubscriptionActive { get; set; }
+
+        [DataType(DataType.Date)]
+        public DateTime DateofLastSync { get; set; }
 
     }
 }

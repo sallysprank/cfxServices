@@ -10,5 +10,6 @@ namespace DataServices.Repositories.Interfaces
     {
         IEnumerable<Subscriber> GetById(int id);
         IEnumerable<Subscriber> GetAllSubscribers();
+        bool UpdateSubscriber(int id, DateTime lastSync, Subscriber ourSubscriber);
     }
 }
