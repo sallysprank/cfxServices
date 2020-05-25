@@ -201,7 +201,7 @@ namespace QBODataCollect.Controllers
             string PPhone;
             string MPhone;
             string PEmail;
-            string Nte;
+            // string Nte;
 
             try
             {
@@ -240,8 +240,8 @@ namespace QBODataCollect.Controllers
                                 MPhone = Validate.SafeGetString(reader, colIndex);
                                 colIndex = reader.GetOrdinal("PrimaryEmailAddr_Address");
                                 PEmail = Validate.SafeGetString(reader, colIndex);
-                                colIndex = reader.GetOrdinal("Notes");
-                                Nte = Validate.SafeGetString(reader, colIndex);
+                                //colIndex = reader.GetOrdinal("Notes");
+                                //Nte = Validate.SafeGetString(reader, colIndex);
                                 customerList.Add(new Customer
                                 {
                                     CustomerId = 0,
@@ -256,7 +256,7 @@ namespace QBODataCollect.Controllers
                                     MobilePhone = MPhone,
                                     PrimaryEmailAddress = PEmail,
                                     Balance = Convert.ToDecimal(reader["Balance"]),
-                                    Notes = Nte,
+                                    // Notes = Nte,
                                     SubscriberId = subscriberId,
                                     SendAutoReminder = true
                                 });
