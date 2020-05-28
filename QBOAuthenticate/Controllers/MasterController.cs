@@ -25,8 +25,12 @@ namespace QBOAuthenticate.Controllers
     [ApiController]
     public class MasterController : ControllerBase
     {
-        private const string appClientId = "Q00xm3vqx90O704ifsLc2UZ2LTbbXvTx0LQHtNdDKQPHBxcHi0";
-        private const string appClientSecret = "ANw9tDlZDVsXkEBt6ZrarGDrWjLHjRsGUtrc8wiv";
+        //Sandbox
+        //private const string appClientId = "Q00xm3vqx90O704ifsLc2UZ2LTbbXvTx0LQHtNdDKQPHBxcHi0";
+        //private const string appClientSecret = "ANw9tDlZDVsXkEBt6ZrarGDrWjLHjRsGUtrc8wiv";
+        //Production
+        private const string appClientId = "Q0Y4RNfWzpCW2vlflkAMLC58OsLRZVg8ZnEFWvK59LlEoVXzBm";
+        private const string appClientSecret = "78jjGMhPTMdbCbFiZynESyjZTBDOwuZND0Ywy9Ep";
         private string appOauthAccessToken = "";
         private string appOauthRefreshToken = "";
         private string companyId = "";
@@ -64,7 +68,7 @@ namespace QBOAuthenticate.Controllers
             connString.Offline = false;
             connString.OAuthClientId = appClientId;
             connString.OAuthClientSecret = appClientSecret;
-            connString.UseSandbox = true;
+            connString.UseSandbox = false;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
             String callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
@@ -129,7 +133,7 @@ namespace QBOAuthenticate.Controllers
             connString.Offline = false;
             connString.OAuthClientId = appClientId;
             connString.OAuthClientSecret = appClientSecret;
-            connString.UseSandbox = true;
+            connString.UseSandbox = false;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
             String callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
@@ -211,7 +215,7 @@ namespace QBOAuthenticate.Controllers
             var connString = new QuickBooksOnlineConnectionStringBuilder();
             connString.OAuthClientId = appClientId;
             connString.OAuthClientSecret = appClientSecret;
-            connString.UseSandbox = true;
+            connString.UseSandbox = false;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
             string callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
