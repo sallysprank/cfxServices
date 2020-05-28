@@ -18,6 +18,9 @@ using LoggerService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Hosting;
 
 namespace QBOAuthenticate.Controllers
 {
@@ -40,8 +43,9 @@ namespace QBOAuthenticate.Controllers
         private IMemoryCache _cache;
         protected IConfiguration _configuration;
         public int subscriberId { get; set; }
+        private IWebHostEnvironment _env;
 
-        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo, IMemoryCache cache, IConfiguration configuration)
+        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo, IMemoryCache cache, IConfiguration configuration, IWebHostEnvironment env)
         {
             _customerRepo = customerRepo;
             _qboaccessRepo = qboaccessRepo;
@@ -51,6 +55,7 @@ namespace QBOAuthenticate.Controllers
             _cache = cache;
             _configuration = configuration;
             serviceName = GetType().Namespace.Substring(0, GetType().Namespace.IndexOf('.'));
+            _env = env;
         }
 
         // GET: api/master/beginauthorize/id
@@ -184,9 +189,12 @@ namespace QBOAuthenticate.Controllers
 
         // GET: api/master
         [HttpGet(Order = 2)]
-        public ActionResult<bool> FinalAuthorize()
+        public ContentResult FinalAuthorize()
         {
             string verifierToken = "";
+            var webRoot = _env.ContentRootPath;
+            var successFileContent = System.IO.File.ReadAllText(webRoot + "/HTMLResponse/Successful.html");
+            var failureFileContent = System.IO.File.ReadAllText(webRoot + "/HTMLResponse/Unsuccessful.html");
             int sid;
             try
             {
@@ -205,7 +213,13 @@ namespace QBOAuthenticate.Controllers
             _logger.LogInfo("Start FinalAuthorize for Subscriber " + sid);
             string qboCode = Request.Query["code"];
             if (qboCode == null)
-                return false;
+            {
+                return new ContentResult
+                {
+                    ContentType = "text/html",
+                    Content = failureFileContent
+                };
+            }
             verifierToken = qboCode;
             companyId = Request.Query["realmid"];
             var connString = new QuickBooksOnlineConnectionStringBuilder();
@@ -247,7 +261,11 @@ namespace QBOAuthenticate.Controllers
                                     MethodName = currentMethodName,
                                     ErrorDateTime = DateTime.Now
                                 });
-                                return false;
+                                return new ContentResult
+                                {
+                                    ContentType = "text/html",
+                                    Content = failureFileContent
+                                };
 
                             }
                         }
@@ -264,7 +282,11 @@ namespace QBOAuthenticate.Controllers
                     MethodName = currentMethodName,
                     ErrorDateTime = DateTime.Now
                 });
-                return false;
+                return new ContentResult
+                {
+                    ContentType = "text/html",
+                    Content = failureFileContent
+                };
             }
             // Get/Update our QBOAccess record
             bool bRtn;
@@ -279,9 +301,17 @@ namespace QBOAuthenticate.Controllers
             if (bRtn == true)
             {
                 _logger.LogInfo("End FinalAuthorize for Subscriber " + sid);
-                return true;
+                return new ContentResult
+                {
+                    ContentType = "text/html",
+                    Content = successFileContent
+                };
             }
-            return false;
+            return new ContentResult
+            {
+                ContentType = "text/html",
+                Content = failureFileContent
+            };
         }
     }
 
