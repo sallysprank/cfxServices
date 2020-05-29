@@ -124,7 +124,7 @@ namespace QBODataCollect.Controllers
             connString.CompanyId = qboAccess.Company;
             connString.OAuthRefreshToken = qboAccess.RefreshToken;
             connString.OAuthVersion = "2.0";
-            connString.UseSandbox = true;
+            connString.UseSandbox = false;
             connString.InitiateOAuth = "GETANDREFRESH";
             connString.Logfile = "c:\\users\\public\\documents\\rssApiLog.txt";
             connString.Verbosity = "5";
@@ -188,7 +188,7 @@ namespace QBODataCollect.Controllers
             connString.OAuthClientSecret = qboAccess.ClientSecret;
             connString.CompanyId = qboAccess.Company;
             connString.OAuthVersion = "2.0";
-            connString.UseSandbox = true;
+            connString.UseSandbox = false;
             // To insert error log in catch statement, made this variable public
             currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
             int colIndex = 0;
