@@ -125,7 +125,7 @@ namespace QBODataCollect.Controllers
             connString.OAuthRefreshToken = qboAccess.RefreshToken;
             connString.OAuthVersion = "2.0";
             connString.UseSandbox = false;
-            connString.InitiateOAuth = "GETANDREFRESH";
+            //connString.InitiateOAuth = "GETANDREFRESH";
             connString.Logfile = "c:\\users\\public\\documents\\rssApiLog.txt";
             connString.Verbosity = "5";
             currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
