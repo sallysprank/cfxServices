@@ -84,7 +84,8 @@ namespace QBOAuthenticate.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    //connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAuthorizationURL", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("CallbackURL", callbackURL));
@@ -149,7 +150,8 @@ namespace QBOAuthenticate.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    //connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAuthorizationURL", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("CallbackURL", callbackURL));
@@ -239,7 +241,8 @@ namespace QBOAuthenticate.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    //connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAccessToken", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("Authmode", "WEB"));

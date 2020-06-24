@@ -134,7 +134,8 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    //connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("RefreshOAuthAccessToken", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("OAuthRefreshToken", qboAccess.RefreshToken));
@@ -207,7 +208,8 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    //connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("Select * FROM Customers WHERE Active IN (true,false)", connQBO))
                     {
                         using (QuickBooksOnlineDataReader reader = cmdQBO.ExecuteReader())
@@ -325,7 +327,8 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connInv = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connInv.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    //connInv.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connInv.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
                     using (QuickBooksOnlineCommand cmdInv = new QuickBooksOnlineCommand("Select * FROM Invoices WHERE CustomerRef = " + customer.QBCustomerId, connInv))
                     {
                         using (QuickBooksOnlineDataReader reader = cmdInv.ExecuteReader())
@@ -476,7 +479,8 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connPymt = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connPymt.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    //connPymt.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connPymt.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
                     using (QuickBooksOnlineCommand cmdPymt = new QuickBooksOnlineCommand("Select TxnDate FROM Payments WHERE Id = " + txnId, connPymt))
                     {
                         using (QuickBooksOnlineDataReader reader = cmdPymt.ExecuteReader())
