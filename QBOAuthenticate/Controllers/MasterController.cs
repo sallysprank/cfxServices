@@ -29,11 +29,11 @@ namespace QBOAuthenticate.Controllers
     public class MasterController : ControllerBase
     {
         //Sandbox
-        //private const string appClientId = "Q00xm3vqx90O704ifsLc2UZ2LTbbXvTx0LQHtNdDKQPHBxcHi0";
-        //private const string appClientSecret = "ANw9tDlZDVsXkEBt6ZrarGDrWjLHjRsGUtrc8wiv";
+        private const string appClientId = "Q00xm3vqx90O704ifsLc2UZ2LTbbXvTx0LQHtNdDKQPHBxcHi0";
+        private const string appClientSecret = "ANw9tDlZDVsXkEBt6ZrarGDrWjLHjRsGUtrc8wiv";
         //Production
-        private const string appClientId = "Q0Y4RNfWzpCW2vlflkAMLC58OsLRZVg8ZnEFWvK59LlEoVXzBm";
-        private const string appClientSecret = "78jjGMhPTMdbCbFiZynESyjZTBDOwuZND0Ywy9Ep";
+        // private const string appClientId = "Q0Y4RNfWzpCW2vlflkAMLC58OsLRZVg8ZnEFWvK59LlEoVXzBm";
+        // private const string appClientSecret = "78jjGMhPTMdbCbFiZynESyjZTBDOwuZND0Ywy9Ep";
         private string appOauthAccessToken = "";
         private string appOauthRefreshToken = "";
         private string companyId = "";
@@ -73,7 +73,7 @@ namespace QBOAuthenticate.Controllers
             connString.Offline = false;
             connString.OAuthClientId = appClientId;
             connString.OAuthClientSecret = appClientSecret;
-            connString.UseSandbox = false;
+            connString.UseSandbox = true;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
             String callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
@@ -84,8 +84,10 @@ namespace QBOAuthenticate.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    //connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
-                    connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
+                    // Following is Test Environment License for CData
+                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    // Following is Production Environment License for CData
+                    //connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAuthorizationURL", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("CallbackURL", callbackURL));
@@ -139,7 +141,7 @@ namespace QBOAuthenticate.Controllers
             connString.Offline = false;
             connString.OAuthClientId = appClientId;
             connString.OAuthClientSecret = appClientSecret;
-            connString.UseSandbox = false;
+            connString.UseSandbox = true;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
             String callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
@@ -150,8 +152,10 @@ namespace QBOAuthenticate.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    //connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
-                    connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
+                    // Following is Test Environment License for CData
+                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    // Following is Production Environment License for CData
+                    //connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAuthorizationURL", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("CallbackURL", callbackURL));
@@ -231,7 +235,7 @@ namespace QBOAuthenticate.Controllers
             var connString = new QuickBooksOnlineConnectionStringBuilder();
             connString.OAuthClientId = appClientId;
             connString.OAuthClientSecret = appClientSecret;
-            connString.UseSandbox = false;
+            connString.UseSandbox = true;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
             string callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
@@ -241,8 +245,10 @@ namespace QBOAuthenticate.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    //connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
-                    connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
+                    // Following is Test Environment License for CData
+                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    // Following is Production Environment License for CData
+                    //connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAccessToken", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("Authmode", "WEB"));
