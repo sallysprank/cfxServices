@@ -15,6 +15,7 @@ using System.Data;
 using LoggerService;
 using Microsoft.AspNetCore.Authorization;
 using QBODataCollect.ViewModels;
+using Microsoft.Extensions.Configuration;
 
 namespace QBODataCollect.Controllers
 {
@@ -23,6 +24,8 @@ namespace QBODataCollect.Controllers
     [Authorize]
     public class MasterController : ControllerBase
     {
+        private bool useSandBox;
+        private string runTimeLicense = "";
         private readonly ICustomerRepository _customerRepo;
         private readonly IQBOAccessRepository _qboaccessRepo;
         private readonly IInvoiceRepository _invoiceRepo;
@@ -36,9 +39,10 @@ namespace QBODataCollect.Controllers
         private string appOauthRefreshToken = "";
         private List<Customer> customerList = new List<Customer>();
         private List<Invoice> invoiceList = new List<Invoice>();
+        protected IConfiguration _configuration;
         private readonly string SuccessMessage = "Sync completed successfully";
 
-        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ISubscriberRepository subscriberRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo)
+        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ISubscriberRepository subscriberRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo, IConfiguration configuration)
         {
             _customerRepo = customerRepo;
             _qboaccessRepo = qboaccessRepo;
@@ -46,6 +50,9 @@ namespace QBODataCollect.Controllers
             _subscriberRepo = subscriberRepo;
             _logger = logger;
             _errorLogRepo = errorLogRepo;
+            _configuration = configuration;
+            useSandBox = Convert.ToBoolean(_configuration["CDataConfiguration:useSandBox"]);
+            runTimeLicense = _configuration["CDataConfiguration:connectionRunTimeLicense"];
             serviceName = GetType().Namespace.Substring(0, GetType().Namespace.IndexOf('.'));
         }
 
@@ -175,7 +182,7 @@ namespace QBODataCollect.Controllers
             connString.CompanyId = qboAccess.Company;
             connString.OAuthRefreshToken = qboAccess.RefreshToken;
             connString.OAuthVersion = "2.0";
-            connString.UseSandbox = true;
+            connString.UseSandbox = useSandBox;
             //connString.InitiateOAuth = "GETANDREFRESH";
             connString.Logfile = "c:\\users\\public\\documents\\rssApiLog.txt";
             connString.Verbosity = "5";
@@ -185,10 +192,7 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    // Following is Test Environment License for CData
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
-                    // Following is Production Environment License for CData
-                    //connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
+                    connQBO.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("RefreshOAuthAccessToken", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("OAuthRefreshToken", qboAccess.RefreshToken));
@@ -242,7 +246,7 @@ namespace QBODataCollect.Controllers
             connString.OAuthClientSecret = qboAccess.ClientSecret;
             connString.CompanyId = qboAccess.Company;
             connString.OAuthVersion = "2.0";
-            connString.UseSandbox = true;
+            connString.UseSandbox = useSandBox;
             // To insert error log in catch statement, made this variable public
             currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
             int colIndex = 0;
@@ -261,10 +265,7 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    // Following is Test Environment License for CData
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
-                    // Following is Production Environment License for CData
-                    //connQBO.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
+                    connQBO.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("Select * FROM Customers WHERE Active IN (true,false)", connQBO))
                     {
                         using (QuickBooksOnlineDataReader reader = cmdQBO.ExecuteReader())
@@ -394,10 +395,7 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connInv = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    // Following is Test Environment License for CData
-                    connInv.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
-                    // Following is Production Environment License for CData
-                    //connInv.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
+                    connInv.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdInv = new QuickBooksOnlineCommand("Select * FROM Invoices WHERE CustomerRef = " + customer.QBCustomerId, connInv))
                     {
                         using (QuickBooksOnlineDataReader reader = cmdInv.ExecuteReader())
@@ -554,10 +552,7 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connPymt = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    // Following is Test Environment License for CData
-                    connPymt.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
-                    // Following is Production Environment License for CData
-                    //connPymt.RuntimeLicense = "524E52454141595052303036313632315936474D48325A53000000000000000000000000000000004D3036413043323100004B533735434A41325A55475A0000";
+                    connPymt.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdPymt = new QuickBooksOnlineCommand("Select TxnDate FROM Payments WHERE Id = " + txnId, connPymt))
                     {
                         using (QuickBooksOnlineDataReader reader = cmdPymt.ExecuteReader())
