@@ -18,6 +18,9 @@ using LoggerService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Hosting;
 
 namespace QBOAuthenticate.Controllers
 {
@@ -25,12 +28,10 @@ namespace QBOAuthenticate.Controllers
     [ApiController]
     public class MasterController : ControllerBase
     {
-        //Sandbox
-        //private const string appClientId = "Q00xm3vqx90O704ifsLc2UZ2LTbbXvTx0LQHtNdDKQPHBxcHi0";
-        //private const string appClientSecret = "ANw9tDlZDVsXkEBt6ZrarGDrWjLHjRsGUtrc8wiv";
-        //Production
-        private const string appClientId = "Q0Y4RNfWzpCW2vlflkAMLC58OsLRZVg8ZnEFWvK59LlEoVXzBm";
-        private const string appClientSecret = "78jjGMhPTMdbCbFiZynESyjZTBDOwuZND0Ywy9Ep";
+        private string appClientId = "";
+        private string appClientSecret = "";
+        private bool useSandBox;
+        private string runTimeLicense = "";
         private string appOauthAccessToken = "";
         private string appOauthRefreshToken = "";
         private string companyId = "";
@@ -44,8 +45,9 @@ namespace QBOAuthenticate.Controllers
         private IMemoryCache _cache;
         protected IConfiguration _configuration;
         public int subscriberId { get; set; }
+        private IWebHostEnvironment _env;
 
-        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo, IMemoryCache cache, IConfiguration configuration)
+        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo, IMemoryCache cache, IConfiguration configuration, IWebHostEnvironment env)
         {
             _customerRepo = customerRepo;
             _qboaccessRepo = qboaccessRepo;
@@ -55,6 +57,11 @@ namespace QBOAuthenticate.Controllers
             _cache = cache;
             _configuration = configuration;
             serviceName = GetType().Namespace.Substring(0, GetType().Namespace.IndexOf('.'));
+            appClientId = _configuration["CDataConfiguration:appClientId"];
+            appClientSecret = _configuration["CDataConfiguration:appClientSecret"];
+            useSandBox = Convert.ToBoolean(_configuration["CDataConfiguration:useSandBox"]);
+            runTimeLicense = _configuration["CDataConfiguration:connectionRunTimeLicense"];
+            _env = env;
         }
 
         // GET: api/master/beginauthorize/id
@@ -68,7 +75,7 @@ namespace QBOAuthenticate.Controllers
             connString.Offline = false;
             connString.OAuthClientId = appClientId;
             connString.OAuthClientSecret = appClientSecret;
-            connString.UseSandbox = false;
+            connString.UseSandbox = useSandBox;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
             String callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
@@ -78,8 +85,8 @@ namespace QBOAuthenticate.Controllers
             try
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
-                {
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                {           
+                    connQBO.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAuthorizationURL", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("CallbackURL", callbackURL));
@@ -133,7 +140,7 @@ namespace QBOAuthenticate.Controllers
             connString.Offline = false;
             connString.OAuthClientId = appClientId;
             connString.OAuthClientSecret = appClientSecret;
-            connString.UseSandbox = false;
+            connString.UseSandbox = useSandBox;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
             String callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
@@ -144,7 +151,7 @@ namespace QBOAuthenticate.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connQBO.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAuthorizationURL", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("CallbackURL", callbackURL));
@@ -188,9 +195,12 @@ namespace QBOAuthenticate.Controllers
 
         // GET: api/master
         [HttpGet(Order = 2)]
-        public ActionResult<bool> FinalAuthorize()
+        public ContentResult FinalAuthorize()
         {
             string verifierToken = "";
+            var webRoot = _env.ContentRootPath;
+            var successFileContent = System.IO.File.ReadAllText(webRoot + "/HTMLResponse/Successful.html");
+            var failureFileContent = System.IO.File.ReadAllText(webRoot + "/HTMLResponse/Unsuccessful.html");
             int sid;
             try
             {
@@ -209,13 +219,19 @@ namespace QBOAuthenticate.Controllers
             _logger.LogInfo("Start FinalAuthorize for Subscriber " + sid);
             string qboCode = Request.Query["code"];
             if (qboCode == null)
-                return false;
+            {
+                return new ContentResult
+                {
+                    ContentType = "text/html",
+                    Content = failureFileContent
+                };
+            }
             verifierToken = qboCode;
             companyId = Request.Query["realmid"];
             var connString = new QuickBooksOnlineConnectionStringBuilder();
             connString.OAuthClientId = appClientId;
             connString.OAuthClientSecret = appClientSecret;
-            connString.UseSandbox = false;
+            connString.UseSandbox = useSandBox;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
             string callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
@@ -225,7 +241,7 @@ namespace QBOAuthenticate.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connQBO.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAccessToken", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("Authmode", "WEB"));
@@ -251,7 +267,11 @@ namespace QBOAuthenticate.Controllers
                                     MethodName = currentMethodName,
                                     ErrorDateTime = DateTime.Now
                                 });
-                                return false;
+                                return new ContentResult
+                                {
+                                    ContentType = "text/html",
+                                    Content = failureFileContent
+                                };
 
                             }
                         }
@@ -268,7 +288,11 @@ namespace QBOAuthenticate.Controllers
                     MethodName = currentMethodName,
                     ErrorDateTime = DateTime.Now
                 });
-                return false;
+                return new ContentResult
+                {
+                    ContentType = "text/html",
+                    Content = failureFileContent
+                };
             }
             // Get/Update our QBOAccess record
             bool bRtn;
@@ -283,9 +307,17 @@ namespace QBOAuthenticate.Controllers
             if (bRtn == true)
             {
                 _logger.LogInfo("End FinalAuthorize for Subscriber " + sid);
-                return true;
+                return new ContentResult
+                {
+                    ContentType = "text/html",
+                    Content = successFileContent
+                };
             }
-            return false;
+            return new ContentResult
+            {
+                ContentType = "text/html",
+                Content = failureFileContent
+            };
         }
     }
 

@@ -79,6 +79,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="HTMLResponse\" />
     <Folder Include="Repositories\" />
   </ItemGroup>
 

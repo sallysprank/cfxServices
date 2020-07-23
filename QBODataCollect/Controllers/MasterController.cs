@@ -14,6 +14,8 @@ using System.IO;
 using System.Data;
 using LoggerService;
 using Microsoft.AspNetCore.Authorization;
+using QBODataCollect.ViewModels;
+using Microsoft.Extensions.Configuration;
 
 namespace QBODataCollect.Controllers
 {
@@ -22,6 +24,8 @@ namespace QBODataCollect.Controllers
     [Authorize]
     public class MasterController : ControllerBase
     {
+        private bool useSandBox;
+        private string runTimeLicense = "";
         private readonly ICustomerRepository _customerRepo;
         private readonly IQBOAccessRepository _qboaccessRepo;
         private readonly IInvoiceRepository _invoiceRepo;
@@ -35,8 +39,10 @@ namespace QBODataCollect.Controllers
         private string appOauthRefreshToken = "";
         private List<Customer> customerList = new List<Customer>();
         private List<Invoice> invoiceList = new List<Invoice>();
+        protected IConfiguration _configuration;
+        private readonly string SuccessMessage = "Sync completed successfully";
 
-        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ISubscriberRepository subscriberRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo)
+        public MasterController(ICustomerRepository customerRepo, IQBOAccessRepository qboaccessRepo, IInvoiceRepository invoiceRepo, ISubscriberRepository subscriberRepo, ILoggerManager logger, IErrorLogRepository errorLogRepo, IConfiguration configuration)
         {
             _customerRepo = customerRepo;
             _qboaccessRepo = qboaccessRepo;
@@ -44,15 +50,19 @@ namespace QBODataCollect.Controllers
             _subscriberRepo = subscriberRepo;
             _logger = logger;
             _errorLogRepo = errorLogRepo;
+            _configuration = configuration;
+            useSandBox = Convert.ToBoolean(_configuration["CDataConfiguration:useSandBox"]);
+            runTimeLicense = _configuration["CDataConfiguration:connectionRunTimeLicense"];
             serviceName = GetType().Namespace.Substring(0, GetType().Namespace.IndexOf('.'));
         }
 
         // GET: api/master/Id
         [HttpGet("{id}")]
-        public ActionResult<bool> Client(int id)
+        public ActionResult<QBSyncResponse> Client(int id)
         {
             //If the id is 0, return all subscribers otherwise return the requested subscriber
-            bool bRtn;
+            string bRtn;
+            bool updateAccessTableResult;
             subscriberId = id;
             IEnumerable<Subscriber> subscriber;
             currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
@@ -66,7 +76,11 @@ namespace QBODataCollect.Controllers
                 subscriber = _subscriberRepo.GetById(subscriberId);
                 if (subscriber == null)
                 {
-                    return false;
+                    return new QBSyncResponse()
+                    {
+                        ResponseStatus = false,
+                        ResponseMessage = "Subscriber not found."
+                    };
                 }
             }
 
@@ -75,18 +89,39 @@ namespace QBODataCollect.Controllers
                 subscriberId = subs.Id;
                 _logger.LogInfo("Begin Subscriber " + subscriberId + " Authorization");
                 QBOAccess qboAccess = _qboaccessRepo.GetById(subscriberId);
+                if(qboAccess == null)
+                {
+                    return new QBSyncResponse()
+                    {
+                        ResponseStatus = false,
+                        ResponseMessage = "You must authorize with QuickBooks before syncing your data."
+                    };
+                }
                 // save Access Id
                 int qboAccessId = qboAccess.Id;
 
                 // Refresh QBO connection
                 bRtn = RefreshQBO(qboAccess);
-                if (bRtn == false) return false;
-
+                if (bRtn != SuccessMessage)
+                {
+                    return new QBSyncResponse()
+                    {
+                        ResponseStatus = false,
+                        ResponseMessage = bRtn
+                    };
+                }
                 // Update Access table with new refresh token
                 try
                 {
-                    bRtn = _qboaccessRepo.UpdateQBOAccess(qboAccessId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
-                    if (bRtn == false) return false;
+                    updateAccessTableResult = _qboaccessRepo.UpdateQBOAccess(qboAccessId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
+                    if (updateAccessTableResult == false)
+                    {
+                        return new QBSyncResponse()
+                        {
+                            ResponseStatus = false,
+                            ResponseMessage = "You will need to re-authorize your QuickBooks account and try to sync again."
+                        };
+                    }
                 }
                 catch(Exception ex)
                 {
@@ -98,7 +133,11 @@ namespace QBODataCollect.Controllers
                         MethodName = currentMethodName,
                         ErrorDateTime = DateTime.Now
                     });
-                    return false;
+                    return new QBSyncResponse()
+                    {
+                        ResponseStatus = false,
+                        ResponseMessage = "Error occurred " + ex.Message
+                    };
                 }
                 _logger.LogInfo("End Subscriber " + subscriberId + " Authorization");
 
@@ -106,16 +145,35 @@ namespace QBODataCollect.Controllers
                 _logger.LogInfo("Begin QBO Data Access for Subscriber " + subscriberId);
                 // Get and Update Customers & Invoices
                 bRtn = GetQBOCustomers(qboAccess);
+                if(bRtn != SuccessMessage)
+                {
+                    return new QBSyncResponse()
+                    {
+                        ResponseStatus = false,
+                        ResponseMessage = bRtn
+                    };
+                }
                 _logger.LogInfo("End QBO Data Access for Subscriber " + subscriberId);
                 //Update the last sync date in the subscriber table
-                bRtn = _subscriberRepo.UpdateSubscriber(subscriberId, DateTime.Now, subs);
-                if (bRtn == false) return false;
+                var updateSyncDateResult = _subscriberRepo.UpdateSubscriber(subscriberId, DateTime.Now, subs);
+                if (updateSyncDateResult == false)
+                {
+                    return new QBSyncResponse()
+                    {
+                        ResponseStatus = false,
+                        ResponseMessage = "Not able to update last sync date for subscriber"
+                    };
+                }
             }
-            return true;
+            return new QBSyncResponse()
+            {
+                ResponseStatus = true,
+                ResponseMessage = SuccessMessage
+            };
         }
         
         //Refresh QBO
-        private bool RefreshQBO(QBOAccess qboAccess)
+        private string RefreshQBO(QBOAccess qboAccess)
         {
             var connString = new QuickBooksOnlineConnectionStringBuilder();
             connString.Offline = false;
@@ -124,7 +182,7 @@ namespace QBODataCollect.Controllers
             connString.CompanyId = qboAccess.Company;
             connString.OAuthRefreshToken = qboAccess.RefreshToken;
             connString.OAuthVersion = "2.0";
-            connString.UseSandbox = false;
+            connString.UseSandbox = useSandBox;
             //connString.InitiateOAuth = "GETANDREFRESH";
             connString.Logfile = "c:\\users\\public\\documents\\rssApiLog.txt";
             connString.Verbosity = "5";
@@ -134,7 +192,7 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connQBO.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("RefreshOAuthAccessToken", connQBO))
                     {
                         cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("OAuthRefreshToken", qboAccess.RefreshToken));
@@ -152,12 +210,12 @@ namespace QBODataCollect.Controllers
                                 _errorLogRepo.InsertErrorLog(new ErrorLog
                                 {
                                     SubscriberId = qboAccess.SubscriberId,
-                                    ErrorMessage = "Unable to refresh QBO Authorization token for Subscriber",
+                                    ErrorMessage = "You will need to re-authorize your QuickBooks account and try to sync again.",
                                     ServiceName = serviceName,
                                     MethodName = currentMethodName,
                                     ErrorDateTime = DateTime.Now
                                 });
-                                return false;
+                                return "You will need to re-authorize your QuickBooks account and try to sync again.";
                             }
                         }
                     }
@@ -173,13 +231,13 @@ namespace QBODataCollect.Controllers
                     MethodName = currentMethodName,
                     ErrorDateTime = DateTime.Now
                 });
-                return false;
+                return ex.Message;
             }
-            return true;
+            return SuccessMessage;
         }
 
         // Get Customers
-        private bool GetQBOCustomers(QBOAccess qboAccess)
+        private string GetQBOCustomers(QBOAccess qboAccess)
         {
             var connString = new QuickBooksOnlineConnectionStringBuilder();
             connString.Offline = false;
@@ -188,7 +246,7 @@ namespace QBODataCollect.Controllers
             connString.OAuthClientSecret = qboAccess.ClientSecret;
             connString.CompanyId = qboAccess.Company;
             connString.OAuthVersion = "2.0";
-            connString.UseSandbox = false;
+            connString.UseSandbox = useSandBox;
             // To insert error log in catch statement, made this variable public
             currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
             int colIndex = 0;
@@ -207,7 +265,7 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connQBO.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connQBO.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("Select * FROM Customers WHERE Active IN (true,false)", connQBO))
                     {
                         using (QuickBooksOnlineDataReader reader = cmdQBO.ExecuteReader())
@@ -276,7 +334,7 @@ namespace QBODataCollect.Controllers
                     MethodName = currentMethodName,
                     ErrorDateTime = DateTime.Now
                 });
-                return false;
+                return "Error occurred " + ex.Message;
             }
             foreach (var cust in customerList)
             {
@@ -285,27 +343,39 @@ namespace QBODataCollect.Controllers
                 {
                     // customer not found, add it
                     var customerId = _customerRepo.AddCustomer(cust);
-                    if (customerId == 0) return false;
+                    if (customerId == 0)
+                    {
+                        return "Not able to add customer in customer table.";
+                    }
                     // Get any invoices this customer may have
                     var result = GetInvoices(cust, customerId, connString);
-                    if (result == false) return false;
+                    if (result != SuccessMessage)
+                    {
+                        return result;
+                    }
                 }
                 else
                 {
                     // we found a customer update it
                     cust.CustomerId = customer.CustomerId;
                     var result = _customerRepo.UpdateCustomer(cust);
-                    if (result == false) return false;
+                    if (result == false)
+                    {
+                        return "Not able to update customer in customer table.";
+                    }
                     // Get any invoices this customer may have
-                    result = GetInvoices(cust, customer.CustomerId, connString);
-                    if (result == false) return false;
+                    var invoiceResult = GetInvoices(cust, customer.CustomerId, connString);
+                    if (invoiceResult != SuccessMessage)
+                    {
+                        return invoiceResult;
+                    } 
                 }
             }
-            return true;
+            return SuccessMessage;
         }
 
         //Get Customer Invoices
-        private bool GetInvoices(Customer customer, int customerId, QuickBooksOnlineConnectionStringBuilder connString)
+        private string GetInvoices(Customer customer, int customerId, QuickBooksOnlineConnectionStringBuilder connString)
         {
             // Need to clear the list
             invoiceList = new List<Invoice>();
@@ -325,7 +395,7 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connInv = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connInv.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connInv.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdInv = new QuickBooksOnlineCommand("Select * FROM Invoices WHERE CustomerRef = " + customer.QBCustomerId, connInv))
                     {
                         using (QuickBooksOnlineDataReader reader = cmdInv.ExecuteReader())
@@ -441,7 +511,7 @@ namespace QBODataCollect.Controllers
                     MethodName = currentMethodName,
                     ErrorDateTime = DateTime.Now
                 });
-                return false;
+                return "Error occurred " + ex.Message;
             }
 
             foreach (var inv in invoiceList)
@@ -451,17 +521,23 @@ namespace QBODataCollect.Controllers
                 {
                     // Need to add a invoice record
                     var result = _invoiceRepo.AddInvoice(inv);
-                    if (result == false) return false;
+                    if (result == false)
+                    {
+                        return "Not able to add Invoice.";
+                    }
                 }
                 else
                 {
                     // Need to update invoice
                     inv.InvoiceId = invoice.InvoiceId;
                     var result = _invoiceRepo.UpdateInvoice(inv);
-                    if (result == false) return false;
+                    if (result == false)
+                    {
+                        return "Not able to update Invoice.";
+                    }
                 }
             }
-            return true;
+            return SuccessMessage;
         }
 
         //Get Invoice Payments
@@ -476,7 +552,7 @@ namespace QBODataCollect.Controllers
             {
                 using (QuickBooksOnlineConnection connPymt = new QuickBooksOnlineConnection(connString.ToString()))
                 {
-                    connPymt.RuntimeLicense = "524E52454141595052303034303332315934334D4D32464D00000000000000000000000000000000333059484E595A4E00005947564554564650353052330000";
+                    connPymt.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdPymt = new QuickBooksOnlineCommand("Select TxnDate FROM Payments WHERE Id = " + txnId, connPymt))
                     {
                         using (QuickBooksOnlineDataReader reader = cmdPymt.ExecuteReader())
