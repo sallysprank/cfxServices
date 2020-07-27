@@ -52,7 +52,7 @@ namespace DataServices.Repositories
             }
         }
 
-        public bool UpdateQBOAccess(int id, string accessToken, string refreshToken, QBOAccess ourQBOAccess)
+        public bool UpdateQBOAccess(int id, string companyId, string accessToken, string refreshToken, QBOAccess ourQBOAccess)
         {
             try
             {
@@ -63,10 +63,10 @@ namespace DataServices.Repositories
                 //string protectRefreshToken = _protector.Protect(refreshToken);
                 using (IDbConnection conn = Connection)
                 {
-                    string sQuery = @"UPDATE [dbo].[QBOAccess] SET [RefreshToken] = @refreshToken, [AccessToken] = @accessToken " +
+                    string sQuery = @"UPDATE [dbo].[QBOAccess] SET [RefreshToken] = @refreshToken, [Company] = @companyId, [AccessToken] = @accessToken " +
                         "WHERE Id = @id";
                     conn.Open();
-                    var results = conn.Execute(@sQuery, new { id, refreshToken, accessToken });
+                    var results = conn.Execute(@sQuery, new { id, refreshToken, accessToken, companyId });
                     if (results > 0)
                     {
                         return true;
