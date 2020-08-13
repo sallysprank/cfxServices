@@ -14,7 +14,7 @@
   <Target Name="WorkaroundMSBuild2836" BeforeTargets="CompileLicxFiles">
     <!-- Work around https://github.com/Microsoft/msbuild/issues/2836 by
          temporarily setting TargetFrameworkVersion to a version high
-         high enough to cause the LC task to use a response file. -->
+         high enough to cause the LC task to use a response file.   -->
     <PropertyGroup>
       <_OriginalTargetFrameworkVersion>$(TargetFrameworkVersion)</_OriginalTargetFrameworkVersion>
       <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
