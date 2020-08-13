@@ -21,6 +21,7 @@ using Microsoft.Extensions.Configuration;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Hosting;
+using QBOAuthenticate.Helpers;
 
 namespace QBOAuthenticate.Controllers
 {
@@ -297,12 +298,15 @@ namespace QBOAuthenticate.Controllers
             // Get/Update our QBOAccess record
             bool bRtn;
             QBOAccess qboAccess = _qboaccessRepo.GetById(sid);
+            AESCryptography cryptography = new AESCryptography(_configuration);
+            companyId = cryptography.Encrypt(companyId);
+            appOauthRefreshToken = cryptography.Encrypt(appOauthRefreshToken);
             if (qboAccess == null)
-            {
+            {      
                 bRtn = _qboaccessRepo.AddQBOAccess(appClientId,appClientSecret, companyId, appOauthAccessToken, appOauthRefreshToken, sid);
             }
             else {
-                bRtn = _qboaccessRepo.UpdateQBOAccess(qboAccess.Id, appOauthAccessToken, appOauthRefreshToken, qboAccess);
+                bRtn = _qboaccessRepo.UpdateQBOAccess(qboAccess.Id, companyId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
             }
             if (bRtn == true)
             {

@@ -16,6 +16,7 @@ using LoggerService;
 using Microsoft.AspNetCore.Authorization;
 using QBODataCollect.ViewModels;
 using Microsoft.Extensions.Configuration;
+using QBODataCollect.Helpers;
 
 namespace QBODataCollect.Controllers
 {
@@ -37,6 +38,7 @@ namespace QBODataCollect.Controllers
         private string currentMethodName = "";
         private string appOauthAccessToken = "";
         private string appOauthRefreshToken = "";
+        private string companyId = "";
         private List<Customer> customerList = new List<Customer>();
         private List<Invoice> invoiceList = new List<Invoice>();
         protected IConfiguration _configuration;
@@ -113,7 +115,17 @@ namespace QBODataCollect.Controllers
                 // Update Access table with new refresh token
                 try
                 {
-                    updateAccessTableResult = _qboaccessRepo.UpdateQBOAccess(qboAccessId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
+                    AESCryptography cryptography = new AESCryptography(_configuration);
+                    appOauthRefreshToken = cryptography.Encrypt(appOauthRefreshToken);
+                    if (IsAllDigits(qboAccess.Company))
+                    {
+                        companyId = cryptography.Encrypt(qboAccess.Company);
+                    }
+                    else
+                    {
+                        companyId = qboAccess.Company;
+                    }
+                    updateAccessTableResult = _qboaccessRepo.UpdateQBOAccess(qboAccessId, companyId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
                     if (updateAccessTableResult == false)
                     {
                         return new QBSyncResponse()
@@ -175,10 +187,16 @@ namespace QBODataCollect.Controllers
         //Refresh QBO
         private string RefreshQBO(QBOAccess qboAccess)
         {
+            AESCryptography cryptography = new AESCryptography(_configuration);
             var connString = new QuickBooksOnlineConnectionStringBuilder();
             connString.Offline = false;
             connString.OAuthClientId = qboAccess.ClientId;
             connString.OAuthClientSecret = qboAccess.ClientSecret;
+            if(!IsAllDigits(qboAccess.Company))
+            {
+                qboAccess.Company = cryptography.Decrypt(qboAccess.Company);
+                qboAccess.RefreshToken = cryptography.Decrypt(qboAccess.RefreshToken);
+            }
             connString.CompanyId = qboAccess.Company;
             connString.OAuthRefreshToken = qboAccess.RefreshToken;
             connString.OAuthVersion = "2.0";
@@ -243,8 +261,8 @@ namespace QBODataCollect.Controllers
             connString.Offline = false;
             connString.OAuthAccessToken = appOauthAccessToken;
             connString.OAuthClientId = qboAccess.ClientId;
-            connString.OAuthClientSecret = qboAccess.ClientSecret;
-            connString.CompanyId = qboAccess.Company;
+            connString.OAuthClientSecret = qboAccess.ClientSecret;   
+            connString.CompanyId = qboAccess.Company;       
             connString.OAuthVersion = "2.0";
             connString.UseSandbox = useSandBox;
             // To insert error log in catch statement, made this variable public
@@ -586,6 +604,16 @@ namespace QBODataCollect.Controllers
         {
             int monthsApart = 12 * (startDate.Year - endDate.Year) + startDate.Month - endDate.Month;
             return Math.Abs(monthsApart);
+        }
+
+        private static bool IsAllDigits(string s)
+        {
+            foreach (char c in s)
+            {
+                if (!char.IsDigit(c))
+                    return false;
+            }
+            return true;
         }
     }
     static class Validate
