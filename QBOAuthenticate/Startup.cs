@@ -59,18 +59,6 @@ namespace QBOAuthenticate
             services.AddSession();  //Sessions
             services.AddDataProtection(); // Add Data Protection
             services.AddMemoryCache();
-            services.AddHangfire(configuration => configuration
-            .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-            .UseSimpleAssemblyNameTypeSerializer()
-            .UseRecommendedSerializerSettings()
-            .UseSqlServerStorage(Configuration.GetConnectionString("HangfireConnectionString"), new SqlServerStorageOptions
-            {
-                CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
-                SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-                QueuePollInterval = TimeSpan.Zero,
-                UseRecommendedIsolationLevel = true,
-                DisableGlobalLocks = true
-            }));
 
             var appSettingsSection = Configuration.GetSection("AppSettings");
             services.Configure<AppSettings>(appSettingsSection);
@@ -122,14 +110,6 @@ namespace QBOAuthenticate
             });
 
             app.UseStaticFiles();
-            app.UseHangfireDashboard();
-            app.UseHangfireServer();
-            //BackgroundJob.Enqueue<MasterController>(x => x.Client());
-            //app.Run(async (context) =>
-            //{
-            //    await context.Response.WriteAsync("Hello World!");
-            //});
-
         }
     }
 }
