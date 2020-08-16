@@ -86,7 +86,7 @@ namespace QBOAuthenticate.Controllers
             try
             {
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
-                {           
+                {
                     connQBO.RuntimeLicense = runTimeLicense;
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("GetOAuthAuthorizationURL", connQBO))
                     {
@@ -207,7 +207,7 @@ namespace QBOAuthenticate.Controllers
             {
                 sid = (int)HttpContext.Session.GetInt32("subscriberId");
             }
-            catch(Exception)
+            catch (Exception)
             {
                 sid = _cache.Get<int>("subscriberId");
             }
@@ -302,10 +302,11 @@ namespace QBOAuthenticate.Controllers
             companyId = cryptography.Encrypt(companyId);
             appOauthRefreshToken = cryptography.Encrypt(appOauthRefreshToken);
             if (qboAccess == null)
-            {      
-                bRtn = _qboaccessRepo.AddQBOAccess(appClientId,appClientSecret, companyId, appOauthAccessToken, appOauthRefreshToken, sid);
+            {
+                bRtn = _qboaccessRepo.AddQBOAccess(appClientId, appClientSecret, companyId, appOauthAccessToken, appOauthRefreshToken, sid);
             }
-            else {
+            else
+            {
                 bRtn = _qboaccessRepo.UpdateQBOAccess(qboAccess.Id, companyId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
             }
             if (bRtn == true)
@@ -322,6 +323,63 @@ namespace QBOAuthenticate.Controllers
                 ContentType = "text/html",
                 Content = failureFileContent
             };
+        }
+
+        [HttpGet("{id}/{authtoken}", Order = 3)]
+        public ActionResult<Boolean> DisconnectfromQBO(int id, string authtoken)
+        {
+            _logger.LogInfo("Start Disconnect for Subscriber " + id);
+            var connString = new QuickBooksOnlineConnectionStringBuilder();
+            connString.Offline = false;
+            connString.UseSandbox = useSandBox;
+            connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
+            connString.Verbosity = "5";
+            connString.OAuthAccessToken = authtoken;
+            currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
+
+            try
+            {
+                using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
+                {
+                    connQBO.RuntimeLicense = runTimeLicense;
+                    using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("DisconnectOauthAccessToken", connQBO))
+                    {
+                        cmdQBO.CommandType = CommandType.StoredProcedure;
+    
+                        using (QuickBooksOnlineDataReader reader = cmdQBO.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                _errorLogRepo.InsertErrorLog(new ErrorLog
+                                {
+                                    SubscriberId = id,
+                                    ErrorMessage = "Unable to disconnect authorization token",
+                                    ServiceName = serviceName,
+                                    MethodName = currentMethodName,
+                                    ErrorDateTime = DateTime.Now
+                                });
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _errorLogRepo.InsertErrorLog(new ErrorLog
+                {
+                    SubscriberId = id,
+                    ErrorMessage = ex.Message,
+                    ServiceName = serviceName,
+                    MethodName = currentMethodName,
+                    ErrorDateTime = DateTime.Now
+                });
+                return false;
+            }
         }
     }
 
