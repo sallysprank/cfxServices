@@ -22,6 +22,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Hosting;
 using QBOAuthenticate.Helpers;
+using QBOAuthenticate.Models;
 
 namespace QBOAuthenticate.Controllers
 {
@@ -297,7 +298,7 @@ namespace QBOAuthenticate.Controllers
             }
             // Get/Update our QBOAccess record
             bool bRtn;
-            QBOAccess qboAccess = _qboaccessRepo.GetById(sid);
+            DataServices.Models.QBOAccess qboAccess = _qboaccessRepo.GetById(sid);
             AESCryptography cryptography = new AESCryptography(_configuration);
             companyId = cryptography.Encrypt(companyId);
             appOauthRefreshToken = cryptography.Encrypt(appOauthRefreshToken);
@@ -325,16 +326,17 @@ namespace QBOAuthenticate.Controllers
             };
         }
 
-        [HttpGet("{id}/{authtoken}", Order = 3)]
-        public ActionResult<Boolean> DisconnectfromQBO(int id, string authtoken)
+        [HttpPost(Order = 3)]
+        [Authorize]
+        public ActionResult<Boolean> DisconnectfromQBO(QBODisconnect qbodisconnect)
         {
-            _logger.LogInfo("Start Disconnect for Subscriber " + id);
+            _logger.LogInfo("Start Disconnect for Subscriber " + qbodisconnect.Id);
             var connString = new QuickBooksOnlineConnectionStringBuilder();
             connString.Offline = false;
             connString.UseSandbox = useSandBox;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
-            connString.OAuthAccessToken = authtoken;
+            connString.OAuthAccessToken = qbodisconnect.Authtoken;
             currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
 
             try
@@ -356,7 +358,7 @@ namespace QBOAuthenticate.Controllers
                             {
                                 _errorLogRepo.InsertErrorLog(new ErrorLog
                                 {
-                                    SubscriberId = id,
+                                    SubscriberId = qbodisconnect.Id,
                                     ErrorMessage = "Unable to disconnect authorization token",
                                     ServiceName = serviceName,
                                     MethodName = currentMethodName,
@@ -372,7 +374,7 @@ namespace QBOAuthenticate.Controllers
             {
                 _errorLogRepo.InsertErrorLog(new ErrorLog
                 {
-                    SubscriberId = id,
+                    SubscriberId = qbodisconnect.Id,
                     ErrorMessage = ex.Message,
                     ServiceName = serviceName,
                     MethodName = currentMethodName,
