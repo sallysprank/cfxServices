@@ -106,6 +106,7 @@ namespace QBODataCollect.Controllers
                 bRtn = RefreshQBO(qboAccess);
                 if (bRtn != SuccessMessage)
                 {
+                    _qboaccessRepo.DeleteQBOAccess(subscriberId);
                     return new QBSyncResponse()
                     {
                         ResponseStatus = false,
