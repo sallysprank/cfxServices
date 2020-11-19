@@ -331,12 +331,19 @@ namespace QBOAuthenticate.Controllers
         public ActionResult<Boolean> DisconnectfromQBO(QBODisconnect qbodisconnect)
         {
             _logger.LogInfo("Start Disconnect for Subscriber " + qbodisconnect.Id);
+            AESCryptography cryptography = new AESCryptography(_configuration);
             var connString = new QuickBooksOnlineConnectionStringBuilder();
             connString.Offline = false;
-            connString.UseSandbox = useSandBox;
             connString.Logfile = "c:\\users\\public\\documents\\QBOLog.txt";
             connString.Verbosity = "5";
+            connString.OAuthClientId = appClientId;
+            connString.OAuthClientSecret = appClientSecret;
             connString.OAuthAccessToken = qbodisconnect.Authtoken;
+            connString.OAuthRefreshToken = cryptography.Decrypt(qbodisconnect.OAuthRefreshToken);
+            connString.CompanyId = cryptography.Decrypt(qbodisconnect.CompanyId);
+            //connString.OAuthRefreshToken = "AB11614292706tcN0cfVUHXDtH4hovOiLE9ZmexvIIVNsIUErk";
+            //connString.CompanyId = "193514469951999"; //PlanGuru LLC Support Company
+            String callbackURL = _configuration["CFXServiceConfiguration:AuthanticateServiceEndPoint"] + "api/master/finalauthorize";
             currentMethodName = this.ControllerContext.RouteData.Values["action"].ToString();
 
             try
@@ -344,29 +351,13 @@ namespace QBOAuthenticate.Controllers
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
                     connQBO.RuntimeLicense = runTimeLicense;
+
                     using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("DisconnectOauthAccessToken", connQBO))
                     {
+                        cmdQBO.Parameters.Add(new QuickBooksOnlineParameter("CallbackURL", callbackURL));
                         cmdQBO.CommandType = CommandType.StoredProcedure;
-    
-                        using (QuickBooksOnlineDataReader reader = cmdQBO.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                _errorLogRepo.InsertErrorLog(new ErrorLog
-                                {
-                                    SubscriberId = qbodisconnect.Id,
-                                    ErrorMessage = "Unable to disconnect authorization token",
-                                    ServiceName = serviceName,
-                                    MethodName = currentMethodName,
-                                    ErrorDateTime = DateTime.Now
-                                });
-                                return false;
-                            }
-                        }
+                        var iSuccess = cmdQBO.ExecuteNonQuery();
+                        return true;
                     }
                 }
             }
