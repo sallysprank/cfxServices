@@ -9,5 +9,7 @@ namespace QBOAuthenticate.Models
     {
         public int Id { get; set; }
         public string Authtoken { get; set; }
+        public string OAuthRefreshToken { get; set; }
+        public string CompanyId { get; set; }
     }
 }
