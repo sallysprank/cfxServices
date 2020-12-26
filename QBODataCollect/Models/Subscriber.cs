@@ -61,6 +61,16 @@ namespace QBODataCollect.Models
         [DataType(DataType.Date)]
         public DateTime DateofLastSync { get; set; }
 
+        public bool SyncActive { get; set; }
+
+        public bool SendWeekends { get; set; } = true;
+
+        public bool SendHolidays { get; set; } = true;
+
+        public int TimeAdj { get; set; }
+
+        public int PlanId { get; set; }
+
 
     }
 }
