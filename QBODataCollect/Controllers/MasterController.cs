@@ -78,11 +78,13 @@ namespace QBODataCollect.Controllers
                 subscriber = _subscriberRepo.GetById(subscriberId);
                 if (subscriber == null)
                 {
+                    _logger.LogError("subscriber not found");
                     return new QBSyncResponse()
                     {
                         ResponseStatus = false,
                         ResponseMessage = "Subscriber not found."
                     };
+                   
                 }
             }
 
@@ -93,6 +95,7 @@ namespace QBODataCollect.Controllers
                 QBOAccess qboAccess = _qboaccessRepo.GetById(subscriberId);
                 if(qboAccess == null)
                 {
+                    _logger.LogError("You must authorize with QuickBooks before syncing your data.");
                     return new QBSyncResponse()
                     {
                         ResponseStatus = false,
@@ -129,6 +132,7 @@ namespace QBODataCollect.Controllers
                     updateAccessTableResult = _qboaccessRepo.UpdateQBOAccess(qboAccessId, companyId, appOauthAccessToken, appOauthRefreshToken, qboAccess);
                     if (updateAccessTableResult == false)
                     {
+                        _logger.LogError("You will need to re-authorize your QuickBooks account and try to sync again.");
                         return new QBSyncResponse()
                         {
                             ResponseStatus = false,
@@ -138,6 +142,7 @@ namespace QBODataCollect.Controllers
                 }
                 catch(Exception ex)
                 {
+                    _logger.LogError("error occurred" + ex.Message);
                     _errorLogRepo.InsertErrorLog(new ErrorLog
                     {
                         SubscriberId = subscriberId,
@@ -160,6 +165,7 @@ namespace QBODataCollect.Controllers
                 bRtn = GetQBOCustomers(qboAccess);
                 if(bRtn != SuccessMessage)
                 {
+                    _logger.LogError(bRtn);
                     return new QBSyncResponse()
                     {
                         ResponseStatus = false,
@@ -171,6 +177,7 @@ namespace QBODataCollect.Controllers
                 var updateSyncDateResult = _subscriberRepo.UpdateSubscriber(subscriberId, DateTime.Now, subs);
                 if (updateSyncDateResult == false)
                 {
+                    _logger.LogError("Not able to update last sync date for subscriber");
                     return new QBSyncResponse()
                     {
                         ResponseStatus = false,
@@ -188,6 +195,7 @@ namespace QBODataCollect.Controllers
         //Refresh QBO
         private string RefreshQBO(QBOAccess qboAccess)
         {
+            _logger.LogInfo("Refresh QBO started for subscriber id" + subscriberId);
             AESCryptography cryptography = new AESCryptography(_configuration);
             var connString = new QuickBooksOnlineConnectionStringBuilder();
             connString.Offline = false;
@@ -242,6 +250,7 @@ namespace QBODataCollect.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("error occurred in refresh qbo method " + ex.Message);
                 _errorLogRepo.InsertErrorLog(new ErrorLog
                 {
                     SubscriberId = qboAccess.SubscriberId,
@@ -252,12 +261,14 @@ namespace QBODataCollect.Controllers
                 });
                 return ex.Message;
             }
+            _logger.LogInfo("Refresh QBO ended for subscriber id" + subscriberId);
             return SuccessMessage;
         }
 
         // Get Customers
         private string GetQBOCustomers(QBOAccess qboAccess)
         {
+            _logger.LogInfo("Begin Get QBO Customer Access for Subscriber " + subscriberId);
             var connString = new QuickBooksOnlineConnectionStringBuilder();
             connString.Offline = false;
             connString.OAuthAccessToken = appOauthAccessToken;
@@ -285,11 +296,12 @@ namespace QBODataCollect.Controllers
                 using (QuickBooksOnlineConnection connQBO = new QuickBooksOnlineConnection(connString.ToString()))
                 {
                     connQBO.RuntimeLicense = runTimeLicense;
-                    using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("Select * FROM Customers WHERE Active IN (true,false)", connQBO))
+                    using (QuickBooksOnlineCommand cmdQBO = new QuickBooksOnlineCommand("Select * FROM Customers WHERE Balance != 0", connQBO))
                     {
+                        _logger.LogInfo("Successfully called select query for Subscriber " + subscriberId);
                         using (QuickBooksOnlineDataReader reader = cmdQBO.ExecuteReader())
                         {
-                           
+                            _logger.LogInfo("Start reading data from quickbook for subscriber id " + subscriberId);
 
                             while (reader.Read())
                             {
@@ -344,6 +356,7 @@ namespace QBODataCollect.Controllers
             }
             catch(Exception ex)
             {
+                _logger.LogError("Error occurred at cusomer level " + ex.Message);
                 _errorLogRepo.InsertErrorLog(new ErrorLog
                 {
                     SubscriberId = qboAccess.Id,
@@ -357,6 +370,7 @@ namespace QBODataCollect.Controllers
             }
             foreach (var cust in customerList)
             {
+                _logger.LogInfo("Start operation for customer for customer id " + cust.QBCustomerId + " for subscriber id "+ subscriberId);
                 Customer customer = _customerRepo.GetByID(subscriberId, cust.QBCustomerId);
                 if (customer == null)
                 {
@@ -367,6 +381,7 @@ namespace QBODataCollect.Controllers
                         return "Not able to add customer in customer table.";
                     }
                     // Get any invoices this customer may have
+                    _logger.LogInfo("Add or update invoice operation for customer for customer id " + cust.QBCustomerId + " for subscriber id " + subscriberId);
                     var result = GetInvoices(cust, customerId, connString);
                     if (result != SuccessMessage)
                     {
@@ -389,13 +404,16 @@ namespace QBODataCollect.Controllers
                         return invoiceResult;
                     } 
                 }
+                _logger.LogInfo("End operation for customer for customer id " + cust.QBCustomerId + " for subscriber id " + subscriberId);
             }
+            _logger.LogInfo("End Get QBO Customer Access for Subscriber " + subscriberId);
             return SuccessMessage;
         }
 
         //Get Customer Invoices
         private string GetInvoices(Customer customer, int customerId, QuickBooksOnlineConnectionStringBuilder connString)
         {
+            _logger.LogInfo("Start Add or update invoice operation for customer for customer id " + customerId + " for subscriber id " + subscriberId);
             // Need to clear the list
             invoiceList = new List<Invoice>();
             // To insert error log in catch statement, made this variable public
@@ -521,6 +539,7 @@ namespace QBODataCollect.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("error occurred at invoice level" + ex.Message);
                 _errorLogRepo.InsertErrorLog(new ErrorLog
                 {
                     SubscriberId = subscriberId,
@@ -556,6 +575,7 @@ namespace QBODataCollect.Controllers
                     }
                 }
             }
+            _logger.LogInfo("End Add or update invoice operation for customer for customer id " + customerId + " for subscriber id " + subscriberId);
             return SuccessMessage;
         }
 
